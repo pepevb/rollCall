@@ -131,6 +131,118 @@
 		}
 	}
 
+	function parseParticipantName(identity: string): string {
+		return identity.replace(/-\d+$/, '');
+	}
+
+	function getVolumeIcon(volume: number): string {
+		if (volume === 0) return '🔇';
+		if (volume <= 0.5) return '🔉';
+		return '🔊';
+	}
+
+	function loadSavedVolumes(): Map<string, number> {
+		if (typeof window === 'undefined') return new Map();
+		try {
+			const raw = localStorage.getItem('rolcall-volumes');
+			if (!raw) return new Map();
+			const obj = JSON.parse(raw) as Record<string, number>;
+			return new Map(Object.entries(obj));
+		} catch (e) {
+			console.error('[RolCall] Error loading saved volumes:', e);
+			return new Map();
+		}
+	}
+
+	function saveVolumesToStorage(map: Map<string, number>): void {
+		if (typeof window === 'undefined') return;
+		try {
+			localStorage.setItem('rolcall-volumes', JSON.stringify(Object.fromEntries(map)));
+		} catch (e) {
+			console.error('[RolCall] Error saving volumes:', e);
+		}
+	}
+
+	function setParticipantVolume(identity: string, volume: number): void {
+		if (!room) return;
+		const participant = room.remoteParticipants.get(identity);
+		if (!participant) return;
+		try {
+			participant.setVolume(volume);
+		} catch (e) {
+			console.error('[RolCall] Error calling setVolume:', e);
+		}
+
+		const next = new Map(participantVolumes);
+		next.set(identity, volume);
+		participantVolumes = next;
+
+		const nameKey = parseParticipantName(identity);
+		const storageMap = loadSavedVolumes();
+		storageMap.set(nameKey, volume);
+		saveVolumesToStorage(storageMap);
+	}
+
+	function toggleParticipantMute(identity: string): void {
+		const currentVol = participantVolumes.get(identity) ?? 1.0;
+		if (currentVol === 0) {
+			const savedPre = preMuteVolumes.get(identity) ?? 1.0;
+			setParticipantVolume(identity, savedPre);
+			const next = new Map(preMuteVolumes);
+			next.delete(identity);
+			preMuteVolumes = next;
+		} else {
+			const next = new Map(preMuteVolumes);
+			next.set(identity, currentVol);
+			preMuteVolumes = next;
+			setParticipantVolume(identity, 0);
+		}
+	}
+
+	function applyStoredVolumes(): void {
+		if (!room || room.remoteParticipants.size === 0) return;
+		const saved = loadSavedVolumes();
+		if (saved.size === 0) return;
+
+		room.remoteParticipants.forEach((participant) => {
+			const nameKey = parseParticipantName(participant.identity);
+			const savedVol = saved.get(nameKey);
+			if (savedVol === undefined) return;
+			try {
+				participant.setVolume(savedVol);
+			} catch (e) {
+				console.error('[RolCall] Error applying stored volume:', e);
+			}
+			const next = new Map(participantVolumes);
+			next.set(participant.identity, savedVol);
+			participantVolumes = next;
+		});
+	}
+
+	function applyStoredVolumeForParticipant(participant: RemoteParticipant): void {
+		const saved = loadSavedVolumes();
+		const nameKey = parseParticipantName(participant.identity);
+		const savedVol = saved.get(nameKey);
+		if (savedVol === undefined) return;
+		try {
+			participant.setVolume(savedVol);
+		} catch (e) {
+			console.error('[RolCall] Error applying stored volume for participant:', e);
+		}
+		const next = new Map(participantVolumes);
+		next.set(participant.identity, savedVol);
+		participantVolumes = next;
+	}
+
+	function setScreenShareVolume(volume: number): void {
+		screenShareVolume = volume;
+		const audioEl = document.getElementById('screen-share-audio') as HTMLAudioElement | null;
+		if (audioEl) audioEl.volume = volume;
+		const storageMap = loadSavedVolumes();
+		storageMap.set(`__screenshare__${screenShareParticipant}`, volume);
+		saveVolumesToStorage(storageMap);
+	}
+
 	onMount(() => {
 		loadPreferences();
 		if (urlRole === 'master') {
@@ -179,7 +291,7 @@
 
 		room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
 		room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
-		room.on(RoomEvent.ParticipantConnected, refreshParticipants);
+		room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
 		room.on(RoomEvent.ParticipantDisconnected, refreshParticipants);
 		room.on(RoomEvent.TrackMuted, refreshParticipants);
 		room.on(RoomEvent.TrackUnmuted, refreshParticipants);
@@ -211,6 +323,7 @@
 		}
 
 		refreshParticipants();
+		applyStoredVolumes();
 	}
 
 	function refreshParticipants() {
@@ -218,6 +331,11 @@
 		const remote = Array.from(room.remoteParticipants.values());
 		participants = [room.localParticipant, ...remote];
 		requestAnimationFrame(() => attachAllTracks());
+	}
+
+	function handleParticipantConnected(participant: RemoteParticipant) {
+		refreshParticipants();
+		applyStoredVolumeForParticipant(participant);
 	}
 
 	function attachAllTracks() {
@@ -252,10 +370,14 @@
 			screenShareTrack = track;
 			screenShareParticipant = participant.name || participant.identity;
 			requestAnimationFrame(() => { if (screenShareEl) track.attach(screenShareEl); });
+			const saved = loadSavedVolumes();
+			const savedVol = saved.get(`__screenshare__${screenShareParticipant}`);
+			if (savedVol !== undefined) screenShareVolume = savedVol;
 		} else if (track.source === Track.Source.ScreenShareAudio) {
 			const audioEl = document.createElement('audio');
 			audioEl.id = 'screen-share-audio';
 			audioEl.autoplay = true;
+			audioEl.volume = screenShareVolume;
 			track.attach(audioEl);
 			document.body.appendChild(audioEl);
 		}
@@ -266,6 +388,7 @@
 		if (track.source === Track.Source.ScreenShare) {
 			screenShareTrack = null;
 			screenShareParticipant = '';
+			screenShareVolume = 1.0;
 		}
 		track.detach();
 		document.getElementById('screen-share-audio')?.remove();
@@ -645,6 +768,22 @@
 						<div class="absolute left-3 top-3 rounded-lg bg-black/70 px-3 py-1 text-sm text-white">
 							🖥️ {screenShareParticipant} comparte pantalla
 						</div>
+						<div class="absolute right-3 top-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5">
+							<button
+								onclick={() => setScreenShareVolume(screenShareVolume === 0 ? 1.0 : 0)}
+								class="text-sm text-white transition hover:text-gray-300"
+								title="Silenciar audio de pantalla"
+							>{getVolumeIcon(screenShareVolume)}</button>
+							<input
+								type="range"
+								min="0"
+								max="100"
+								value={screenShareVolume * 100}
+								oninput={(e) => setScreenShareVolume(e.currentTarget.valueAsNumber / 100)}
+								class="w-20 accent-indigo-500"
+								title="Volumen audio de pantalla compartida"
+							/>
+						</div>
 					</div>
 				{/if}
 
@@ -652,6 +791,8 @@
 					class="grid flex-1 gap-2 p-2 {screenShareTrack ? 'max-h-40 grid-cols-6' : gridCols(participants.length)}">
 					{#each participants as p, i (p.identity)}
 						{@const quality = getConnectionQualityIcon(p)}
+						{@const isRemote = p !== room?.localParticipant}
+						{@const currentVol = participantVolumes.get(p.identity) ?? 1.0}
 						<div data-participant={i} class="group relative overflow-hidden rounded-xl bg-gray-900 {screenShareTrack ? '' : 'aspect-video'}">
 							<video autoplay playsinline muted={p === room?.localParticipant} class="h-full w-full object-cover"></video>
 							
@@ -670,9 +811,27 @@
 									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
 								</div>
 							</div>
-							{#if isMaster && p !== room?.localParticipant}
+							{#if isRemote && !screenShareTrack}
+								<button
+									onclick={() => toggleParticipantMute(p.identity)}
+									class="absolute bottom-9 left-2 rounded-full bg-black/60 px-1.5 py-0.5 text-sm text-white opacity-0 transition group-hover:opacity-100"
+									title="Silenciar / Restaurar volumen"
+								>{getVolumeIcon(currentVol)}</button>
+								<div class="absolute bottom-9 left-9 right-2 flex items-center opacity-0 transition group-hover:opacity-100">
+									<input
+										type="range"
+										min="0"
+										max="100"
+										value={currentVol * 100}
+										oninput={(e) => setParticipantVolume(p.identity, e.currentTarget.valueAsNumber / 100)}
+										class="w-full accent-indigo-500"
+										title="Volumen de {p.name || p.identity}"
+									/>
+								</div>
+							{/if}
+							{#if isMaster && isRemote}
 								<button onclick={() => kickParticipant(p.identity)}
-									class="absolute right-2 top-2 rounded-full bg-red-600/80 p-1.5 text-xs text-white opacity-0 transition group-hover:opacity-100"
+									class="absolute right-2 top-8 rounded-full bg-red-600/80 p-1.5 text-xs text-white opacity-0 transition group-hover:opacity-100"
 									title="Expulsar">✕</button>
 							{/if}
 						</div>
