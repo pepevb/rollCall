@@ -40,6 +40,9 @@
 	let backgroundMenuOpen = $state(false);
 	let currentProcessor: ProcessorWrapper<any> | null = null;
 
+	// Noise suppression state
+	let noiseSuppression = $state(false);
+
 	let chatOpen = $state(false);
 	let chatMessages = $state<{ sender: string; text: string; time: string }[]>([]);
 	let chatInput = $state('');
@@ -299,7 +302,30 @@
 		screenShareTrack = null;
 	}
 
-	async function toggleMic() { if (!room) return; micEnabled = !micEnabled; await room.localParticipant.setMicrophoneEnabled(micEnabled); }
+	async function toggleMic() { 
+		if (!room) return; 
+		micEnabled = !micEnabled; 
+		await room.localParticipant.setMicrophoneEnabled(micEnabled, {
+			noiseSuppression,
+			echoCancellation: true,
+			autoGainControl: true
+		}); 
+	}
+	
+	async function toggleNoiseSuppression() {
+		if (!room) return;
+		noiseSuppression = !noiseSuppression;
+		// Disable and re-enable mic to apply new constraints
+		const wasEnabled = micEnabled;
+		if (wasEnabled) {
+			await room.localParticipant.setMicrophoneEnabled(false);
+			await room.localParticipant.setMicrophoneEnabled(true, {
+				noiseSuppression,
+				echoCancellation: true,
+				autoGainControl: true
+			});
+		}
+	}
 	async function toggleCam() { if (!room) return; camEnabled = !camEnabled; await room.localParticipant.setCameraEnabled(camEnabled); refreshParticipants(); }
 	async function toggleScreenShare() { if (!room || !isMaster) return; screenSharing = !screenSharing; await room.localParticipant.setScreenShareEnabled(screenSharing, { audio: true }); }
 	async function leaveRoom() { if (room) room.disconnect(); joined = false; participants = []; window.location.href = '/'; }
@@ -679,6 +705,8 @@
 		<div class="flex items-center justify-center gap-3 border-t border-gray-800 bg-gray-900 px-4 py-3">
 			<button onclick={toggleMic} class="rounded-full p-3 text-xl transition {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
+			<button onclick={toggleNoiseSuppression} class="rounded-full p-3 text-xl transition {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				title={noiseSuppression ? 'Reducción de ruido activa' : 'Activar reducción de ruido'}>{noiseSuppression ? '✨' : '🔊'}</button>
 			<button onclick={toggleCam} class="rounded-full p-3 text-xl transition {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}>{camEnabled ? '📹' : '📷'}</button>
 			
