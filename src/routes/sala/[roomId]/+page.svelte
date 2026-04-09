@@ -240,27 +240,6 @@
 	let reconnectAttempts = 0;
 	let lastToken = '';
 
-	async function attemptReconnect() {
-		if (reconnecting || !lastToken) return;
-		
-		reconnecting = true;
-		reconnectAttempts++;
-		
-		try {
-			await new Promise(resolve => setTimeout(resolve, 2000 * reconnectAttempts));
-			await connectToRoom(lastToken);
-			joined = true;
-			reconnecting = false;
-			reconnectAttempts = 0;
-			error = '';
-		} catch (e) {
-			if (reconnectAttempts < 3) {
-				attemptReconnect();
-			} else {
-				reconnecting = false;
-				error = 'No se pudo reconectar. Intenta recargar la página.';
-			}
-		}
 	}
 
 	// ── Preferences ───────────────────────────────────────────────────────────
