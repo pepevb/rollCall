@@ -481,6 +481,7 @@
 				<div bind:this={videoGrid}
 					class="grid flex-1 gap-2 p-2 {screenShareTrack ? 'max-h-40 grid-cols-6' : gridCols(participants.length)}">
 					{#each participants as p, i (p.identity)}
+						{@const quality = getConnectionQualityIcon(p)}
 						<div data-participant={i} class="group relative overflow-hidden rounded-xl bg-gray-900 {screenShareTrack ? '' : 'aspect-video'}">
 							<video autoplay playsinline muted={p === room?.localParticipant} class="h-full w-full object-cover"></video>
 							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
@@ -490,10 +491,9 @@
 									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
 								</span>
 								<div class="flex items-center gap-1">
-								{ quality = getConnectionQualityIcon(p)}
-								<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
-								{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
-							</div>
+									<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
+									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
+								</div>
 							</div>
 							{#if isMaster && p !== room?.localParticipant}
 								<button onclick={() => kickParticipant(p.identity)}
@@ -503,6 +503,7 @@
 						</div>
 					{/each}
 				</div>
+
 			</div>
 
 			{#if chatOpen}
