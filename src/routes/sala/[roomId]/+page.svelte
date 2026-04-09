@@ -622,6 +622,12 @@
 						{@const quality = getConnectionQualityIcon(p)}
 						<div data-participant={i} class="group relative overflow-hidden rounded-xl bg-gray-900 {screenShareTrack ? '' : 'aspect-video'}">
 							<video autoplay playsinline muted={p === room?.localParticipant} class="h-full w-full object-cover"></video>
+							
+							<!-- Indicador de conexión en esquina superior derecha -->
+							<div class="absolute right-2 top-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 backdrop-blur-sm">
+								<span class="{quality.color} text-sm" title={quality.title}>{quality.icon}</span>
+							</div>
+							
 							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
 								<span class="flex items-center gap-1 text-sm font-medium text-white">
 									{#if p === room?.localParticipant && isMaster}<span class="text-amber-400">👑</span>{/if}
@@ -629,7 +635,6 @@
 									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
 								</span>
 								<div class="flex items-center gap-1">
-									<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
 									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
 								</div>
 							</div>
