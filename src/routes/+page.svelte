@@ -1,20 +1,46 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let loading = $state(false);
 	let error = $state('');
+	let lastRoomId = $state<string | null>(null);
 
-	async function createRoom() {
+	onMount(() => {
+		if (typeof window !== 'undefined') {
+			lastRoomId = localStorage.getItem('rolcall-lastRoomId');
+		}
+	});
+
+	async function continueLastRoom() {
+		if (!lastRoomId) return;
+		await createOrJoinRoom(lastRoomId);
+	}
+
+	async function createNewRoom() {
+		await createOrJoinRoom(null);
+	}
+
+	async function createOrJoinRoom(roomId: string | null) {
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch('/api/create-room', { method: 'POST' });
+			const res = await fetch('/api/create-room', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ roomId })
+			});
 			if (!res.ok) {
 				const data = await res.json();
 				throw new Error(data.error ?? 'Error al crear la sala');
 			}
-			const { roomId } = await res.json();
-			await goto(`/sala/${roomId}?role=master&name=Anfitrión`);
+			const { roomId: finalRoomId } = await res.json();
+			
+			if (typeof window !== 'undefined') {
+				localStorage.setItem('rolcall-lastRoomId', finalRoomId);
+			}
+			
+			await goto(`/sala/${finalRoomId}?role=master&name=Anfitrión`);
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error desconocido';
 			loading = false;
@@ -61,26 +87,73 @@
 				</div>
 			{/if}
 
-			<button
-				onclick={createRoom}
-				disabled={loading}
-				class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-			>
-				<span class="flex items-center justify-center gap-2">
-					{#if loading}
-						<svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-						</svg>
-						Creando sala...
-					{:else}
+			{#if lastRoomId}
+				<div class="mb-4 rounded-xl border border-indigo-600/30 bg-indigo-600/10 px-4 py-3">
+					<p class="mb-1 text-sm font-medium text-indigo-300">Última sala creada</p>
+					<p class="font-mono text-xs text-indigo-400">{lastRoomId}</p>
+				</div>
+
+				<button
+					onclick={continueLastRoom}
+					disabled={loading}
+					class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					<span class="flex items-center justify-center gap-2">
+						{#if loading}
+							<svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+							</svg>
+							Abriendo sala...
+						{:else}
+							<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							Continuar con esta sala
+						{/if}
+					</span>
+				</button>
+
+				<div class="my-4 flex items-center gap-3">
+					<div class="h-px flex-1 bg-gray-800"></div>
+					<span class="text-xs text-gray-600">o</span>
+					<div class="h-px flex-1 bg-gray-800"></div>
+				</div>
+
+				<button
+					onclick={createNewRoom}
+					disabled={loading}
+					class="w-full rounded-xl border border-gray-700 bg-gray-800 px-6 py-3 text-base font-semibold text-white transition-all duration-150 hover:bg-gray-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					<span class="flex items-center justify-center gap-2">
 						<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 						</svg>
-						Crear sala
-					{/if}
-				</span>
-			</button>
+						Crear sala nueva
+					</span>
+				</button>
+			{:else}
+				<button
+					onclick={createNewRoom}
+					disabled={loading}
+					class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					<span class="flex items-center justify-center gap-2">
+						{#if loading}
+							<svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+							</svg>
+							Creando sala...
+						{:else}
+							<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+							</svg>
+							Crear sala
+						{/if}
+					</span>
+				</button>
+			{/if}
 
 			<div class="mt-6 border-t border-gray-800 pt-5">
 				<p class="text-center text-sm text-gray-500">
