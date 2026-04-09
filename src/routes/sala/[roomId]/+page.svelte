@@ -46,7 +46,7 @@
 	onMount(() => {
 		if (urlRole === 'master') {
 			isMaster = true;
-			playerName = urlName || 'Master';
+			playerName = urlName || 'Anfitrión';
 			joinRoom();
 		}
 	});
@@ -191,12 +191,12 @@
 			const kicked = decoder.decode(payload);
 			if (room && kicked === room.localParticipant.identity) {
 				room.disconnect();
-				error = 'Has sido expulsado de la sala por el Master.';
+				error = 'Has sido expulsado de la sala por el anfitrión.';
 				joined = false;
 			}
 		}
 		if (topic === 'room-closed') {
-			if (room) { room.disconnect(); error = 'El Master ha cerrado la sala.'; joined = false; }
+			if (room) { room.disconnect(); error = 'El anfitrión ha cerrado la sala.'; joined = false; }
 		}
 	}
 
@@ -255,8 +255,8 @@
 	<main class="flex min-h-screen flex-col items-center justify-center px-4">
 		<div class="w-full max-w-md text-center">
 			<div class="mb-8">
-				<span class="text-5xl">🎲</span>
-				<h1 class="mt-2 text-3xl font-bold text-white">Unirse a la partida</h1>
+				<span class="text-5xl">📹</span>
+				<h1 class="mt-2 text-3xl font-bold text-white">Unirse a la videollamada</h1>
 				<p class="mt-2 text-gray-400">Introduce tu nombre para entrar</p>
 			</div>
 			<div class="rounded-2xl border border-gray-800 bg-gray-900 p-8">
@@ -264,11 +264,11 @@
 					<div class="mb-4 rounded-lg border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-300">{error}</div>
 				{/if}
 				<form onsubmit={(e) => { e.preventDefault(); joinRoom(); }}>
-					<input type="text" bind:value={playerName} placeholder="Tu nombre de jugador" required maxlength={20}
+					<input type="text" bind:value={playerName} placeholder="Tu nombre" required maxlength={20}
 						class="mb-4 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-center text-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
 					<button type="submit" disabled={connecting || !playerName.trim()}
 						class="w-full rounded-xl bg-indigo-600 px-6 py-3 text-lg font-semibold text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
-						{#if connecting}Conectando…{:else}⚔️ Entrar a la partida{/if}
+						{#if connecting}Conectando…{:else}Unirse{/if}
 					</button>
 				</form>
 			</div>
@@ -279,9 +279,9 @@
 	<div class="flex h-screen flex-col bg-gray-950">
 		<header class="flex items-center justify-between border-b border-gray-800 px-4 py-2">
 			<div class="flex items-center gap-2">
-				<span class="text-xl">🎲</span>
+				<svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
 				<span class="text-sm font-medium text-gray-300">RolCall</span>
-				{#if isMaster}<span class="rounded bg-amber-600 px-2 py-0.5 text-xs font-bold text-white">MASTER</span>{/if}
+				{#if isMaster}<span class="rounded bg-amber-600 px-2 py-0.5 text-xs font-bold text-white">ANFITRIÓN</span>{/if}
 			</div>
 			<div class="flex items-center gap-2">
 				{#if isMaster}

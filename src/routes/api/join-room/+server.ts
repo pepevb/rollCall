@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, TrackSource } from 'livekit-server-sdk';
 import { LIVEKIT_API_KEY, LIVEKIT_API_SECRET } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -35,8 +35,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			canSubscribe: true,
 			canPublishData: true,
 			canPublishSources: isMaster
-				? ['camera', 'microphone', 'screen_share', 'screen_share_audio']
-				: ['camera', 'microphone'],
+				? [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
+				: [TrackSource.CAMERA, TrackSource.MICROPHONE],
 			roomAdmin: isMaster,
 		});
 
