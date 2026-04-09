@@ -103,7 +103,6 @@
 		room.on(RoomEvent.TrackUnmuted, refreshParticipants);
 		room.on(RoomEvent.DataReceived, handleDataReceived);
 		room.on(RoomEvent.Disconnected, handleDisconnect);
-		room.on(RoomEvent.ConnectionQualityChanged, refreshParticipants);
 
 		try {
 			await room.connect(PUBLIC_LIVEKIT_URL, token);
@@ -396,11 +395,7 @@
 									{p.name || p.identity}
 									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
 								</span>
-								<div class="flex items-center gap-1">
-								{ quality = getConnectionQualityIcon(p)}
-								<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
 								{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
-							</div>
 							</div>
 							{#if isMaster && p !== room?.localParticipant}
 								<button onclick={() => kickParticipant(p.identity)}
