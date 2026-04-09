@@ -27,17 +27,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json({ roomId, isNew: true });
 	} catch (e: any) {
-		// Si la sala ya existe, verificar que esté accesible
+		// Si la sala ya existe, simplemente reutilizarla
 		if (e.message?.includes('already exists') || e.code === 409) {
-			try {
-				// Verificar que la sala existe y está disponible
-				const room = await roomService.listRooms([roomId]);
-				if (room.length > 0) {
-					return json({ roomId, isNew: false });
-				}
-			} catch (listError) {
-				console.error('Error listing room:', listError);
-			}
+			// La sala existe activa, podemos reutilizarla
+			return json({ roomId, isNew: false });
 		}
 		
 		console.error('Error creating room:', e);
