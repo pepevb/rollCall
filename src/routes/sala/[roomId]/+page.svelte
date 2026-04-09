@@ -11,7 +11,9 @@
 		type RemoteTrack,
 		type RemoteTrackPublication,
 		type Participant,
+		type LocalVideoTrack,
 	} from 'livekit-client';
+	import { BackgroundBlur, VirtualBackground, type ProcessorWrapper } from '@livekit/track-processors';
 
 	let roomId = $derived($page.params.roomId);
 	let urlRole = $derived($page.url.searchParams.get('role'));
@@ -32,6 +34,11 @@
 	let screenShareTrack = $state<RemoteTrack | null>(null);
 	let screenShareParticipant = $state<string>('');
 
+	// Background filter state
+	let backgroundMode = $state<'none' | 'blur' | 'image'>('none');
+	let backgroundMenuOpen = $state(false);
+	let currentProcessor: ProcessorWrapper<any> | null = null;
+
 	let chatOpen = $state(false);
 	let chatMessages = $state<{ sender: string; text: string; time: string }[]>([]);
 	let chatInput = $state('');
@@ -39,6 +46,7 @@
 	let videoGrid: HTMLDivElement;
 	let screenShareEl: HTMLVideoElement;
 	let chatContainer: HTMLDivElement;
+	let backgroundImageInput: HTMLInputElement;
 
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
@@ -53,6 +61,7 @@
 
 	onDestroy(() => {
 		if (room) room.disconnect();
+		if (currentProcessor) currentProcessor.destroy();
 	});
 
 	async function joinRoom() {
@@ -249,6 +258,64 @@
 		if (count <= 4) return 'grid-cols-2';
 		return 'grid-cols-2 md:grid-cols-3';
 	}
+
+	// Background filter functions
+	async function setBackgroundNone() {
+		if (!room) return;
+		if (currentProcessor) {
+			await currentProcessor.destroy();
+			currentProcessor = null;
+		}
+		backgroundMode = 'none';
+		backgroundMenuOpen = false;
+	}
+
+	async function setBackgroundBlur() {
+		if (!room) return;
+		const videoTrack = room.localParticipant.getTrackPublication(Track.Source.Camera)?.track as LocalVideoTrack | undefined;
+		if (!videoTrack) return;
+
+		try {
+			if (currentProcessor) await currentProcessor.destroy();
+			const blur = BackgroundBlur(10);
+			await videoTrack.setProcessor(blur);
+			currentProcessor = blur;
+			backgroundMode = 'blur';
+			backgroundMenuOpen = false;
+		} catch (e) {
+			console.error('Error aplicando blur:', e);
+		}
+	}
+
+	async function setBackgroundImage(imageUrl: string) {
+		if (!room) return;
+		const videoTrack = room.localParticipant.getTrackPublication(Track.Source.Camera)?.track as LocalVideoTrack | undefined;
+		if (!videoTrack) return;
+
+		try {
+			if (currentProcessor) await currentProcessor.destroy();
+			const virtualBg = VirtualBackground(imageUrl);
+			await videoTrack.setProcessor(virtualBg);
+			currentProcessor = virtualBg;
+			backgroundMode = 'image';
+			backgroundMenuOpen = false;
+		} catch (e) {
+			console.error('Error aplicando fondo:', e);
+		}
+	}
+
+	function handleBackgroundImageUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			const dataUrl = event.target?.result as string;
+			if (dataUrl) setBackgroundImage(dataUrl);
+		};
+		reader.readAsDataURL(file);
+	}
 </script>
 
 {#if !joined && !isMaster}
@@ -359,6 +426,35 @@
 				title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
 			<button onclick={toggleCam} class="rounded-full p-3 text-xl transition {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}>{camEnabled ? '📹' : '📷'}</button>
+			
+			<!-- Background filter button with dropdown -->
+			<div class="relative">
+				<button onclick={() => backgroundMenuOpen = !backgroundMenuOpen} 
+					class="rounded-full p-3 text-xl transition {backgroundMode !== 'none' ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+					title="Fondo virtual">
+					🎨
+				</button>
+				
+				{#if backgroundMenuOpen}
+					<div class="absolute bottom-full mb-2 right-0 w-56 rounded-lg border border-gray-700 bg-gray-800 p-2 shadow-xl">
+						<div class="text-xs font-semibold text-gray-400 px-2 py-1">Fondo virtual</div>
+						<button onclick={setBackgroundNone} 
+							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'none' ? 'bg-gray-700' : ''}">
+							🚫 Sin filtro
+						</button>
+						<button onclick={setBackgroundBlur} 
+							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'blur' ? 'bg-gray-700' : ''}">
+							💨 Difuminar fondo
+						</button>
+						<button onclick={() => backgroundImageInput.click()} 
+							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'image' ? 'bg-gray-700' : ''}">
+							🖼️ Imagen personalizada
+						</button>
+						<input bind:this={backgroundImageInput} type="file" accept="image/*" onchange={handleBackgroundImageUpload} class="hidden" />
+					</div>
+				{/if}
+			</div>
+
 			{#if isMaster}
 				<button onclick={toggleScreenShare} class="rounded-full p-3 text-xl transition {screenSharing ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
 					title={screenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}>🖥️</button>
