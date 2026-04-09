@@ -54,6 +54,12 @@
 	let mediaRecorder: MediaRecorder | null = null;
 	let recordedChunks: Blob[] = [];
 
+	// Per-participant volume state
+	let participantVolumes = $state(new Map<string, number>());
+	let preMuteVolumes = $state(new Map<string, number>());
+	let screenShareVolume = $state(1.0);
+
+
 	let videoGrid: HTMLDivElement;
 	let screenShareEl: HTMLVideoElement;
 	let chatContainer: HTMLDivElement;
