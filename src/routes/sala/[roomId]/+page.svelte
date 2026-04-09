@@ -44,6 +44,12 @@
 	let chatMessages = $state<{ sender: string; text: string; time: string }[]>([]);
 	let chatInput = $state('');
 
+	// Recording state
+	let isRecording = $state(false);
+	let recordingNotification = $state(false);
+	let mediaRecorder: MediaRecorder | null = null;
+	let recordedChunks: Blob[] = [];
+
 	let videoGrid: HTMLDivElement;
 	let screenShareEl: HTMLVideoElement;
 	let chatContainer: HTMLDivElement;
@@ -229,6 +235,7 @@
 	}
 
 	async function closeRoom() {
+		if (isRecording) stopRecording();
 		if (!room || !isMaster) return;
 		await room.localParticipant.publishData(encoder.encode('close'), { reliable: true, topic: 'room-closed' });
 		setTimeout(() => { room?.disconnect(); window.location.href = '/'; }, 500);
@@ -319,6 +326,81 @@
 	}
 
 	function handleBackgroundImageUpload(e: Event) {
+
+	async function toggleRecording() {
+		if (!room || !isMaster) return;
+		
+		if (isRecording) {
+			stopRecording();
+		} else {
+			startRecording();
+		}
+	}
+
+	async function startRecording() {
+		try {
+			const stream = await navigator.mediaDevices.getDisplayMedia({
+				video: { mediaSource: 'screen' as any },
+				audio: true
+			});
+
+			recordedChunks = [];
+			mediaRecorder = new MediaRecorder(stream, {
+				mimeType: 'video/webm;codecs=vp8,opus'
+			});
+
+			mediaRecorder.ondataavailable = (event) => {
+				if (event.data.size > 0) {
+					recordedChunks.push(event.data);
+				}
+			};
+
+			mediaRecorder.onstop = () => {
+				downloadRecording();
+			};
+
+			mediaRecorder.start(1000); // Captura cada segundo
+			isRecording = true;
+			
+			// Mostrar notificación temporal
+			recordingNotification = true;
+			setTimeout(() => {
+				recordingNotification = false;
+			}, 3000);
+
+			// Enviar mensaje a todos los participantes
+			await room?.localParticipant.publishData(
+				encoder.encode(JSON.stringify({ action: 'recording-started' })),
+				{ reliable: true, topic: 'recording' }
+			);
+		} catch (e) {
+			console.error('Error iniciando grabación:', e);
+		}
+	}
+
+	function stopRecording() {
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+			mediaRecorder.stream.getTracks().forEach(track => track.stop());
+			isRecording = false;
+		}
+	}
+
+	function downloadRecording() {
+		if (recordedChunks.length === 0) return;
+
+		const blob = new Blob(recordedChunks, { type: 'video/webm' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.style.display = 'none';
+		a.href = url;
+		a.download = `rolcall-${roomId}-${new Date().toISOString().slice(0, 10)}.webm`;
+		document.body.appendChild(a);
+		a.click();
+		URL.revokeObjectURL(url);
+		document.body.removeChild(a);
+		recordedChunks = [];
+	}
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
@@ -358,6 +440,17 @@
 
 {:else if joined}
 	<div class="flex h-screen flex-col bg-gray-950">
+
+		<!-- Recording notification -->
+		{#if recordingNotification}
+			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-red-600 bg-red-950 px-6 py-3 shadow-xl">
+				<div class="flex items-center gap-2">
+					<span class="h-3 w-3 animate-pulse rounded-full bg-red-500"></span>
+					<span class="font-semibold text-red-200">La sesión se está grabando</span>
+				</div>
+			</div>
+		{/if}
+
 		<header class="flex items-center justify-between border-b border-gray-800 px-4 py-2">
 			<div class="flex items-center gap-2">
 				<svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -476,6 +569,8 @@
 			{#if isMaster}
 				<button onclick={toggleScreenShare} class="rounded-full p-3 text-xl transition {screenSharing ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
 					title={screenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}>🖥️</button>
+				<button onclick={toggleRecording} class="rounded-full p-3 text-xl transition {isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
+					title={isRecording ? 'Detener grabación' : 'Iniciar grabación'}>⏺️</button>
 			{/if}
 			<button onclick={() => (chatOpen = !chatOpen)} class="rounded-full p-3 text-xl transition {chatOpen ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white" title="Chat">💬</button>
 			<div class="mx-2 h-8 w-px bg-gray-700"></div>
