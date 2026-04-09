@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
+	import { PUBLIC_LIVEKIT_URL } from '$env/static/public';
 	import {
 		Room,
 		RoomEvent,
@@ -93,8 +94,29 @@
 		room.on(RoomEvent.DataReceived, handleDataReceived);
 		room.on(RoomEvent.Disconnected, handleDisconnect);
 
-		await room.connect('wss://rolcall-mn08hx19.livekit.cloud', token);
-		await room.localParticipant.enableCameraAndMicrophone();
+		try {
+			await room.connect(PUBLIC_LIVEKIT_URL, token);
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message.toLowerCase() : '';
+			if (msg.includes('full') || msg.includes('max')) {
+				throw new Error('La sala está llena (máximo 6 participantes)');
+			} else if (msg.includes('not found') || msg.includes('does not exist')) {
+				throw new Error('La sala no existe o ha expirado');
+			} else {
+				throw new Error('Error al conectar: ' + (e instanceof Error ? e.message : String(e)));
+			}
+		}
+
+		try {
+			await room.localParticipant.enableCameraAndMicrophone();
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message.toLowerCase() : '';
+			if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed') || msg.includes('not allowed')) {
+				error = 'No se pudo acceder a la cámara/micrófono. Verifica los permisos del navegador.';
+			}
+			// Continue without media — user is still connected
+		}
+
 		refreshParticipants();
 	}
 
