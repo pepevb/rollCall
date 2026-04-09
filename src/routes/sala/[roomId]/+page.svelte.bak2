@@ -362,7 +362,6 @@
 			currentProcessor = null;
 		}
 		backgroundMode = 'none';
-		savePreferences();
 		backgroundMenuOpen = false;
 	}
 
@@ -377,7 +376,6 @@
 			await videoTrack.setProcessor(blur);
 			currentProcessor = blur;
 			backgroundMode = 'blur';
-		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando blur:', e);
@@ -395,7 +393,6 @@
 			await videoTrack.setProcessor(virtualBg);
 			currentProcessor = virtualBg;
 			backgroundMode = 'image';
-		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando fondo:', e);

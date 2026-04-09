@@ -284,15 +284,7 @@
 	}
 
 	function handleDisconnect(reason?: DisconnectReason) {
-		if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
-			error = 'Has sido expulsado de la sala.';
-		} else if (reason === DisconnectReason.CLIENT_INITIATED) {
-			// User intentionally left - don't reconnect
-		} else {
-			// Connection lost - attempt reconnect
-			attemptReconnect();
-			return;
-		}
+		if (reason === DisconnectReason.PARTICIPANT_REMOVED) error = 'Has sido expulsado de la sala.';
 		joined = false;
 		participants = [];
 		screenShareTrack = null;
@@ -362,7 +354,6 @@
 			currentProcessor = null;
 		}
 		backgroundMode = 'none';
-		savePreferences();
 		backgroundMenuOpen = false;
 	}
 
@@ -377,7 +368,6 @@
 			await videoTrack.setProcessor(blur);
 			currentProcessor = blur;
 			backgroundMode = 'blur';
-		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando blur:', e);
@@ -395,7 +385,6 @@
 			await videoTrack.setProcessor(virtualBg);
 			currentProcessor = virtualBg;
 			backgroundMode = 'image';
-		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando fondo:', e);
@@ -403,21 +392,6 @@
 	}
 
 	function handleBackgroundImageUpload(e: Event) {
-		const input = e.target as HTMLInputElement;
-		if (!input.files || input.files.length === 0) return;
-		
-		const file = input.files[0];
-		const reader = new FileReader();
-		reader.onload = async (ev) => {
-			const imageUrl = ev.target?.result as string;
-			if (imageUrl) {
-				await setBackgroundImage(imageUrl);
-			}
-		};
-		reader.readAsDataURL(file);
-	}
-
-	async function toggleRecording() {
 	async function toggleRecording() {
 		if (!room || !isMaster) return;
 		
@@ -429,38 +403,22 @@
 	}
 
 	async function startRecording() {
-		if (!room) return;
-		
 		try {
-			// Crear un AudioContext para mezclar todos los streams de audio
-			const audioContext = new AudioContext();
-			const destination = audioContext.createMediaStreamDestination();
-			
-			// Agregar el audio local (micrófono del master)
-			const localAudioTrack = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
-			if (localAudioTrack) {
-				const localStream = new MediaStream([localAudioTrack.mediaStreamTrack]);
-				const localSource = audioContext.createMediaStreamSource(localStream);
-				localSource.connect(destination);
-			}
-			
-			// Agregar el audio de todos los participantes remotos
-			room.remoteParticipants.forEach((participant) => {
-				const audioTrack = participant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
-				if (audioTrack) {
-					const stream = new MediaStream([audioTrack.mediaStreamTrack]);
-					const source = audioContext.createMediaStreamSource(stream);
-					source.connect(destination);
-				}
+			// Pedir captura de pantalla/ventana
+			const stream = await navigator.mediaDevices.getDisplayMedia({
+				video: true,
+				audio: true
 			});
-			
-			// Verificar soporte de codecs para audio
-			const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-				? 'audio/webm;codecs=opus'
-				: 'audio/webm';
+
+			// Verificar soporte de codecs
+			const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+				? 'video/webm;codecs=vp9,opus'
+				: MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+				? 'video/webm;codecs=vp8,opus'
+				: 'video/webm';
 
 			recordedChunks = [];
-			mediaRecorder = new MediaRecorder(destination.stream, { mimeType });
+			mediaRecorder = new MediaRecorder(stream, { mimeType });
 
 			mediaRecorder.ondataavailable = (event) => {
 				if (event.data.size > 0) {
@@ -469,9 +427,15 @@
 			};
 
 			mediaRecorder.onstop = () => {
-				audioContext.close();
 				downloadRecording();
 			};
+
+			// Detectar cuando el usuario detiene compartir desde el navegador
+			stream.getVideoTracks()[0].addEventListener('ended', () => {
+				if (isRecording) {
+					stopRecording();
+				}
+			});
 
 			mediaRecorder.start(1000);
 			isRecording = true;
@@ -483,16 +447,16 @@
 			}, 3000);
 
 			// Enviar mensaje a todos los participantes
-			await room.localParticipant.publishData(
+			await room?.localParticipant.publishData(
 				encoder.encode(JSON.stringify({ action: 'recording-started' })),
 				{ reliable: true, topic: 'recording' }
 			);
 		} catch (e: any) {
 			console.error('Error iniciando grabación:', e);
 			if (e.name === 'NotAllowedError') {
-				error = 'Permiso de grabación denegado.';
+				error = 'Permiso de grabación denegado. Debes permitir compartir pantalla.';
 			} else if (e.name === 'NotSupportedError') {
-				error = 'Tu navegador no soporta grabación de audio. Usa Chrome, Edge o Firefox.';
+				error = 'Tu navegador no soporta grabación. Usa Chrome, Edge o Firefox.';
 			} else {
 				error = 'Error al iniciar la grabación: ' + e.message;
 			}
