@@ -501,13 +501,13 @@
 	function getConnectionQualityIcon(p: Participant): { icon: string; color: string; title: string } {
 		const quality = p.connectionQuality;
 		if (quality === ConnectionQuality.Excellent) {
-			return { icon: '📶', color: 'text-green-400', title: 'Excelente' };
+			return { icon: '🟢', color: 'text-green-400', title: 'Excelente' };
 		} else if (quality === ConnectionQuality.Good) {
-			return { icon: '📶', color: 'text-yellow-400', title: 'Buena' };
+			return { icon: '🟡', color: 'text-yellow-400', title: 'Buena' };
 		} else if (quality === ConnectionQuality.Poor) {
-			return { icon: '📶', color: 'text-red-400', title: 'Pobre' };
+			return { icon: '🟠', color: 'text-orange-400', title: 'Pobre' };
 		}
-		return { icon: '📶', color: 'text-gray-500', title: 'Desconocida' };
+		return { icon: '🔴', color: 'text-red-500', title: 'Mala conexión' };
 	}
 
 	// Background filter functions
@@ -811,13 +811,13 @@
 									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
 								</div>
 							</div>
-							{#if isRemote && !screenShareTrack}
+							{#if isRemote}
 								<button
 									onclick={() => toggleParticipantMute(p.identity)}
-									class="absolute bottom-9 left-2 rounded-full bg-black/60 px-1.5 py-0.5 text-sm text-white opacity-0 transition group-hover:opacity-100"
+									class="absolute bottom-9 left-2 rounded-full bg-black/70 px-1.5 py-0.5 text-sm text-white opacity-100 transition"
 									title="Silenciar / Restaurar volumen"
 								>{getVolumeIcon(currentVol)}</button>
-								<div class="absolute bottom-9 left-9 right-2 flex items-center opacity-0 transition group-hover:opacity-100">
+								<div class="absolute bottom-9 left-9 right-2 flex items-center opacity-100 transition">
 									<input
 										type="range"
 										min="0"
