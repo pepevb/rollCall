@@ -47,7 +47,6 @@
 	// Recording state
 	let isRecording = $state(false);
 	let recordingNotification = $state(false);
-	let downloadNotification = $state(false);
 	let mediaRecorder: MediaRecorder | null = null;
 	let recordedChunks: Blob[] = [];
 
@@ -520,14 +519,7 @@
 		a.download = `rolcall-audio-${roomId}-${timestamp}.webm`;
 		document.body.appendChild(a);
 		a.click();
-		
-		// Mostrar notificación de descarga
-		downloadNotification = true;
-		setTimeout(() => {
-			downloadNotification = false;
-		}, 5000);
-		
-		console.log('✅ Grabación descargada: audio WebM/Opus. Reproducir con VLC, Chrome, Firefox o Audacity');
+		console.log('✅ Grabación descargada (audio WebM/Opus). Reproducir con: VLC, Chrome, Firefox, Audacity');
 		
 		// Limpiar
 		setTimeout(() => {
@@ -573,18 +565,6 @@
 				<div class="flex items-center gap-2">
 					<span class="h-3 w-3 animate-pulse rounded-full bg-red-500"></span>
 					<span class="font-semibold text-red-200">La sesión se está grabando</span>
-				</div>
-			</div>
-		{/if}
-
-		{#if downloadNotification}
-			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-green-600 bg-green-950 px-6 py-3 shadow-xl">
-				<div class="flex flex-col gap-1">
-					<div class="flex items-center gap-2">
-						<span class="text-xl">💾</span>
-						<span class="font-semibold text-green-200">Grabación descargada</span>
-					</div>
-					<span class="text-xs text-green-300">Archivo: audio WebM/Opus • Reproducir con VLC, Chrome o Audacity</span>
 				</div>
 			</div>
 		{/if}
