@@ -47,6 +47,7 @@
 	// Recording state
 	let isRecording = $state(false);
 	let recordingNotification = $state(false);
+	let downloadNotification = $state(false);
 	let mediaRecorder: MediaRecorder | null = null;
 	let recordedChunks: Blob[] = [];
 
@@ -58,7 +59,71 @@
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
 
+	// Reconnection state
+	let reconnecting = $state(false);
+	let reconnectAttempts = 0;
+	let lastToken = '';
+
+	// Load preferences from localStorage
+	function loadPreferences() {
+		if (typeof window === 'undefined') return;
+		
+		try {
+			const saved = localStorage.getItem('rolcall-preferences');
+			if (saved) {
+				const prefs = JSON.parse(saved);
+				if (prefs.lastUsedName && !urlName) {
+					playerName = prefs.lastUsedName;
+				}
+				if (prefs.backgroundMode) {
+					backgroundMode = prefs.backgroundMode;
+				}
+			}
+		} catch (e) {
+			console.error('Error loading preferences:', e);
+		}
+	}
+
+	// Save preferences to localStorage
+	function savePreferences() {
+		if (typeof window === 'undefined') return;
+		
+		try {
+			localStorage.setItem('rolcall-preferences', JSON.stringify({
+				lastUsedName: playerName,
+				backgroundMode: backgroundMode,
+			}));
+		} catch (e) {
+			console.error('Error saving preferences:', e);
+		}
+	}
+
+	// Auto-reconnect function
+	async function attemptReconnect() {
+		if (reconnecting || !lastToken) return;
+		
+		reconnecting = true;
+		reconnectAttempts++;
+		
+		try {
+			await new Promise(resolve => setTimeout(resolve, 2000 * reconnectAttempts));
+			await connectToRoom(lastToken);
+			joined = true;
+			reconnecting = false;
+			reconnectAttempts = 0;
+			error = '';
+		} catch (e) {
+			if (reconnectAttempts < 3) {
+				attemptReconnect();
+			} else {
+				reconnecting = false;
+				error = 'No se pudo reconectar. Intenta recargar la página.';
+			}
+		}
+	}
+
 	onMount(() => {
+		loadPreferences();
 		if (urlRole === 'master') {
 			isMaster = true;
 			playerName = urlName || 'Anfitrión';
@@ -84,9 +149,11 @@
 				const data = await res.json();
 				throw new Error(data.error || 'Error al unirse');
 			}
-			const { token } = await res.json();
-			await connectToRoom(token);
-			joined = true;
+		const { token } = await res.json();
+		lastToken = token;
+		await connectToRoom(token);
+		joined = true;
+		savePreferences();
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error desconocido';
 		} finally {
@@ -218,7 +285,15 @@
 	}
 
 	function handleDisconnect(reason?: DisconnectReason) {
-		if (reason === DisconnectReason.PARTICIPANT_REMOVED) error = 'Has sido expulsado de la sala.';
+		if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
+			error = 'Has sido expulsado de la sala.';
+		} else if (reason === DisconnectReason.CLIENT_INITIATED) {
+			// User intentionally left - don't reconnect
+		} else {
+			// Connection lost - attempt reconnect
+			attemptReconnect();
+			return;
+		}
 		joined = false;
 		participants = [];
 		screenShareTrack = null;
@@ -288,6 +363,7 @@
 			currentProcessor = null;
 		}
 		backgroundMode = 'none';
+		savePreferences();
 		backgroundMenuOpen = false;
 	}
 
@@ -302,6 +378,7 @@
 			await videoTrack.setProcessor(blur);
 			currentProcessor = blur;
 			backgroundMode = 'blur';
+		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando blur:', e);
@@ -319,6 +396,7 @@
 			await videoTrack.setProcessor(virtualBg);
 			currentProcessor = virtualBg;
 			backgroundMode = 'image';
+		savePreferences();
 			backgroundMenuOpen = false;
 		} catch (e) {
 			console.error('Error aplicando fondo:', e);
@@ -326,6 +404,19 @@
 	}
 
 	function handleBackgroundImageUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (!input.files || input.files.length === 0) return;
+		
+		const file = input.files[0];
+		const reader = new FileReader();
+		reader.onload = async (ev) => {
+			const imageUrl = ev.target?.result as string;
+			if (imageUrl) {
+				await setBackgroundImage(imageUrl);
+			}
+		};
+		reader.readAsDataURL(file);
+	}
 
 	async function toggleRecording() {
 		if (!room || !isMaster) return;
@@ -333,21 +424,43 @@
 		if (isRecording) {
 			stopRecording();
 		} else {
-			startRecording();
+			await startRecording();
 		}
 	}
 
 	async function startRecording() {
+		if (!room) return;
+		
 		try {
-			const stream = await navigator.mediaDevices.getDisplayMedia({
-				video: { mediaSource: 'screen' as any },
-				audio: true
+			// Crear un AudioContext para mezclar todos los streams de audio
+			const audioContext = new AudioContext();
+			const destination = audioContext.createMediaStreamDestination();
+			
+			// Agregar el audio local (micrófono del master)
+			const localAudioTrack = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
+			if (localAudioTrack) {
+				const localStream = new MediaStream([localAudioTrack.mediaStreamTrack]);
+				const localSource = audioContext.createMediaStreamSource(localStream);
+				localSource.connect(destination);
+			}
+			
+			// Agregar el audio de todos los participantes remotos
+			room.remoteParticipants.forEach((participant) => {
+				const audioTrack = participant.getTrackPublication(Track.Source.Microphone)?.audioTrack;
+				if (audioTrack) {
+					const stream = new MediaStream([audioTrack.mediaStreamTrack]);
+					const source = audioContext.createMediaStreamSource(stream);
+					source.connect(destination);
+				}
 			});
+			
+			// Verificar soporte de codecs para audio
+			const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+				? 'audio/webm;codecs=opus'
+				: 'audio/webm';
 
 			recordedChunks = [];
-			mediaRecorder = new MediaRecorder(stream, {
-				mimeType: 'video/webm;codecs=vp8,opus'
-			});
+			mediaRecorder = new MediaRecorder(destination.stream, { mimeType });
 
 			mediaRecorder.ondataavailable = (event) => {
 				if (event.data.size > 0) {
@@ -356,10 +469,11 @@
 			};
 
 			mediaRecorder.onstop = () => {
+				audioContext.close();
 				downloadRecording();
 			};
 
-			mediaRecorder.start(1000); // Captura cada segundo
+			mediaRecorder.start(1000);
 			isRecording = true;
 			
 			// Mostrar notificación temporal
@@ -369,12 +483,20 @@
 			}, 3000);
 
 			// Enviar mensaje a todos los participantes
-			await room?.localParticipant.publishData(
+			await room.localParticipant.publishData(
 				encoder.encode(JSON.stringify({ action: 'recording-started' })),
 				{ reliable: true, topic: 'recording' }
 			);
-		} catch (e) {
+		} catch (e: any) {
 			console.error('Error iniciando grabación:', e);
+			if (e.name === 'NotAllowedError') {
+				error = 'Permiso de grabación denegado.';
+			} else if (e.name === 'NotSupportedError') {
+				error = 'Tu navegador no soporta grabación de audio. Usa Chrome, Edge o Firefox.';
+			} else {
+				error = 'Error al iniciar la grabación: ' + e.message;
+			}
+			setTimeout(() => error = '', 5000);
 		}
 	}
 
@@ -389,29 +511,33 @@
 	function downloadRecording() {
 		if (recordedChunks.length === 0) return;
 
-		const blob = new Blob(recordedChunks, { type: 'video/webm' });
+		const blob = new Blob(recordedChunks, { type: 'audio/webm' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.style.display = 'none';
 		a.href = url;
-		a.download = `rolcall-${roomId}-${new Date().toISOString().slice(0, 10)}.webm`;
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+		a.download = `rolcall-audio-${roomId}-${timestamp}.webm`;
 		document.body.appendChild(a);
 		a.click();
-		URL.revokeObjectURL(url);
-		document.body.removeChild(a);
+		
+		// Mostrar notificación de descarga
+		downloadNotification = true;
+		setTimeout(() => {
+			downloadNotification = false;
+		}, 5000);
+		
+		console.log('✅ Grabación descargada: audio WebM/Opus. Reproducir con VLC, Chrome, Firefox o Audacity');
+		
+		// Limpiar
+		setTimeout(() => {
+			URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+		}, 100);
+		
 		recordedChunks = [];
 	}
-		const input = e.target as HTMLInputElement;
-		const file = input.files?.[0];
-		if (!file) return;
 
-		const reader = new FileReader();
-		reader.onload = (event) => {
-			const dataUrl = event.target?.result as string;
-			if (dataUrl) setBackgroundImage(dataUrl);
-		};
-		reader.readAsDataURL(file);
-	}
 </script>
 
 {#if !joined && !isMaster}
@@ -451,6 +577,18 @@
 			</div>
 		{/if}
 
+		{#if downloadNotification}
+			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-green-600 bg-green-950 px-6 py-3 shadow-xl">
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center gap-2">
+						<span class="text-xl">💾</span>
+						<span class="font-semibold text-green-200">Grabación descargada</span>
+					</div>
+					<span class="text-xs text-green-300">Archivo: audio WebM/Opus • Reproducir con VLC, Chrome o Audacity</span>
+				</div>
+			</div>
+		{/if}
+
 		<header class="flex items-center justify-between border-b border-gray-800 px-4 py-2">
 			<div class="flex items-center gap-2">
 				<svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -481,6 +619,7 @@
 				<div bind:this={videoGrid}
 					class="grid flex-1 gap-2 p-2 {screenShareTrack ? 'max-h-40 grid-cols-6' : gridCols(participants.length)}">
 					{#each participants as p, i (p.identity)}
+						{@const quality = getConnectionQualityIcon(p)}
 						<div data-participant={i} class="group relative overflow-hidden rounded-xl bg-gray-900 {screenShareTrack ? '' : 'aspect-video'}">
 							<video autoplay playsinline muted={p === room?.localParticipant} class="h-full w-full object-cover"></video>
 							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
@@ -490,10 +629,9 @@
 									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
 								</span>
 								<div class="flex items-center gap-1">
-								{ quality = getConnectionQualityIcon(p)}
-								<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
-								{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
-							</div>
+									<span class="{quality.color} text-xs" title={quality.title}>{quality.icon}</span>
+									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
+								</div>
 							</div>
 							{#if isMaster && p !== room?.localParticipant}
 								<button onclick={() => kickParticipant(p.identity)}
@@ -503,6 +641,7 @@
 						</div>
 					{/each}
 				</div>
+
 			</div>
 
 			{#if chatOpen}
