@@ -418,6 +418,7 @@
 	}
 
 	async function toggleRecording() {
+	async function toggleRecording() {
 		if (!room || !isMaster) return;
 		
 		if (isRecording) {
@@ -528,6 +529,17 @@
 		recordedChunks = [];
 	}
 
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			const dataUrl = event.target?.result as string;
+			if (dataUrl) setBackgroundImage(dataUrl);
+		};
+		reader.readAsDataURL(file);
+	}
 </script>
 
 {#if !joined && !isMaster}
