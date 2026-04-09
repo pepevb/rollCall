@@ -326,28 +326,33 @@
 	}
 
 	function handleBackgroundImageUpload(e: Event) {
-
 	async function toggleRecording() {
 		if (!room || !isMaster) return;
 		
 		if (isRecording) {
 			stopRecording();
 		} else {
-			startRecording();
+			await startRecording();
 		}
 	}
 
 	async function startRecording() {
 		try {
+			// Pedir captura de pantalla/ventana
 			const stream = await navigator.mediaDevices.getDisplayMedia({
-				video: { mediaSource: 'screen' as any },
+				video: true,
 				audio: true
 			});
 
+			// Verificar soporte de codecs
+			const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+				? 'video/webm;codecs=vp9,opus'
+				: MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+				? 'video/webm;codecs=vp8,opus'
+				: 'video/webm';
+
 			recordedChunks = [];
-			mediaRecorder = new MediaRecorder(stream, {
-				mimeType: 'video/webm;codecs=vp8,opus'
-			});
+			mediaRecorder = new MediaRecorder(stream, { mimeType });
 
 			mediaRecorder.ondataavailable = (event) => {
 				if (event.data.size > 0) {
@@ -359,7 +364,14 @@
 				downloadRecording();
 			};
 
-			mediaRecorder.start(1000); // Captura cada segundo
+			// Detectar cuando el usuario detiene compartir desde el navegador
+			stream.getVideoTracks()[0].addEventListener('ended', () => {
+				if (isRecording) {
+					stopRecording();
+				}
+			});
+
+			mediaRecorder.start(1000);
 			isRecording = true;
 			
 			// Mostrar notificación temporal
@@ -373,8 +385,16 @@
 				encoder.encode(JSON.stringify({ action: 'recording-started' })),
 				{ reliable: true, topic: 'recording' }
 			);
-		} catch (e) {
+		} catch (e: any) {
 			console.error('Error iniciando grabación:', e);
+			if (e.name === 'NotAllowedError') {
+				error = 'Permiso de grabación denegado. Debes permitir compartir pantalla.';
+			} else if (e.name === 'NotSupportedError') {
+				error = 'Tu navegador no soporta grabación. Usa Chrome, Edge o Firefox.';
+			} else {
+				error = 'Error al iniciar la grabación: ' + e.message;
+			}
+			setTimeout(() => error = '', 5000);
 		}
 	}
 
@@ -397,10 +417,16 @@
 		a.download = `rolcall-${roomId}-${new Date().toISOString().slice(0, 10)}.webm`;
 		document.body.appendChild(a);
 		a.click();
-		URL.revokeObjectURL(url);
-		document.body.removeChild(a);
+		
+		// Limpiar
+		setTimeout(() => {
+			URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+		}, 100);
+		
 		recordedChunks = [];
 	}
+
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
