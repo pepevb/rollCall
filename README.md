@@ -2,6 +2,8 @@
 
 > Voice and video calls for online tabletop RPG sessions.
 
+This is not a commercial project. 
+
 RolCall is a minimalist, ephemeral video-call app built specifically for tabletop RPG groups. No accounts, no persistent rooms — just create a session, share the link, and start playing.
 
 ---
