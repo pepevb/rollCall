@@ -26,6 +26,7 @@
 	"dependencies": {
 		"@livekit/krisp-noise-filter": "^0.4.1",
 		"@livekit/track-processors": "^0.7.2",
+		"@lucide/svelte": "^1.8.0",
 		"livekit-client": "^2.18.1",
 		"livekit-server-sdk": "^2.15.1",
 		"nanoid": "^5.1.7"

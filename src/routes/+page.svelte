@@ -93,11 +93,12 @@
 					<p class="font-mono text-xs text-indigo-400">{lastRoomId}</p>
 				</div>
 
-				<button
-					onclick={continueLastRoom}
-					disabled={loading}
-					class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-				>
+			<button
+				onclick={continueLastRoom}
+				disabled={loading}
+				aria-label="Continuar con la última sala creada"
+				class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
+			>
 					<span class="flex items-center justify-center gap-2">
 						{#if loading}
 							<svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -114,17 +115,18 @@
 					</span>
 				</button>
 
-				<div class="my-4 flex items-center gap-3">
-					<div class="h-px flex-1 bg-gray-800"></div>
-					<span class="text-xs text-gray-600">o</span>
-					<div class="h-px flex-1 bg-gray-800"></div>
-				</div>
+			<div class="my-4 flex items-center gap-3">
+				<div class="h-px flex-1 bg-gray-800"></div>
+				<span class="text-xs text-gray-400">o</span>
+				<div class="h-px flex-1 bg-gray-800"></div>
+			</div>
 
-				<button
-					onclick={createNewRoom}
-					disabled={loading}
-					class="w-full rounded-xl border border-gray-700 bg-gray-800 px-6 py-3 text-base font-semibold text-white transition-all duration-150 hover:bg-gray-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-				>
+			<button
+				onclick={createNewRoom}
+				disabled={loading}
+				aria-label="Crear sala nueva"
+				class="w-full rounded-xl border border-gray-700 bg-gray-800 px-6 py-3 text-base font-semibold text-white transition-all duration-150 hover:bg-gray-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
+			>
 					<span class="flex items-center justify-center gap-2">
 						<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -133,11 +135,12 @@
 					</span>
 				</button>
 			{:else}
-				<button
-					onclick={createNewRoom}
-					disabled={loading}
-					class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-				>
+			<button
+				onclick={createNewRoom}
+				disabled={loading}
+				aria-label="Crear sala nueva"
+				class="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-600/20 transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
+			>
 					<span class="flex items-center justify-center gap-2">
 						{#if loading}
 							<svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -155,11 +158,11 @@
 				</button>
 			{/if}
 
-			<div class="mt-6 border-t border-gray-800 pt-5">
-				<p class="text-center text-sm text-gray-500">
-					¿Te invitaron a una sala? Pide el enlace al anfitrión.
-				</p>
-			</div>
+		<div class="mt-6 border-t border-gray-800 pt-5">
+			<p class="text-center text-sm text-gray-400">
+				¿Te invitaron a una sala? Pide el enlace al anfitrión.
+			</p>
+		</div>
 		</div>
 
 		<!-- Feature pills -->
@@ -191,7 +194,7 @@
 		</div>
 
 		<!-- Trust badges -->
-		<div class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-gray-600">
+		<div class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-gray-400">
 			<span class="flex items-center gap-1.5">
 				<svg class="h-3.5 w-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
 					<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -213,7 +216,7 @@
 		</div>
 	</div>
 
-	<footer class="relative z-10 mt-10 text-center text-xs text-gray-700">
+	<footer class="relative z-10 mt-10 text-center text-xs text-gray-500">
 		<p>Sin registro · Sin instalaciones · Sin complicaciones</p>
 	</footer>
 </main>

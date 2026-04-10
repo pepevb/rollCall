@@ -2,6 +2,32 @@
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { PUBLIC_LIVEKIT_URL } from '$env/static/public';
+	import Mic from '@lucide/svelte/icons/mic';
+	import MicOff from '@lucide/svelte/icons/mic-off';
+	import Video from '@lucide/svelte/icons/video';
+	import VideoOff from '@lucide/svelte/icons/video-off';
+	import AudioWaveform from '@lucide/svelte/icons/audio-waveform';
+	import Volume2 from '@lucide/svelte/icons/volume-2';
+	import Volume1 from '@lucide/svelte/icons/volume-1';
+	import VolumeX from '@lucide/svelte/icons/volume-x';
+	import Activity from '@lucide/svelte/icons/activity';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Monitor from '@lucide/svelte/icons/monitor';
+	import Circle from '@lucide/svelte/icons/circle';
+	import MessageSquare from '@lucide/svelte/icons/message-square';
+	import LogOut from '@lucide/svelte/icons/log-out';
+	import PhoneOff from '@lucide/svelte/icons/phone-off';
+	import Link2 from '@lucide/svelte/icons/link-2';
+	import Check from '@lucide/svelte/icons/check';
+	import Crown from '@lucide/svelte/icons/crown';
+	import Wifi from '@lucide/svelte/icons/wifi';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Ban from '@lucide/svelte/icons/ban';
+	import Blend from '@lucide/svelte/icons/blend';
+	import ImageIcon from '@lucide/svelte/icons/image';
+	import Send from '@lucide/svelte/icons/send';
+	import Download from '@lucide/svelte/icons/download';
+	import X from '@lucide/svelte/icons/x';
 	import {
 		Room,
 		RoomEvent,
@@ -154,10 +180,10 @@
 		return identity.replace(/-\d+$/, '');
 	}
 
-	function getVolumeIcon(volume: number): string {
-		if (volume === 0) return '🔇';
-		if (volume <= 0.5) return '🔉';
-		return '🔊';
+	function getVolumeIconType(volume: number): 'muted' | 'low' | 'high' {
+		if (volume === 0) return 'muted';
+		if (volume <= 0.5) return 'low';
+		return 'high';
 	}
 
 	function loadSavedVolumes(): Map<string, number> {
@@ -655,16 +681,16 @@
 		return 'grid-cols-2 md:grid-cols-3';
 	}
 
-	function getConnectionQualityIcon(p: Participant): { icon: string; color: string; title: string } {
+	function getConnectionQualityIcon(p: Participant): { colorClass: string; title: string } {
 		const quality = p.connectionQuality;
 		if (quality === ConnectionQuality.Excellent) {
-			return { icon: '🟢', color: 'text-green-400', title: 'Excelente' };
+			return { colorClass: 'text-emerald-400', title: 'Excelente' };
 		} else if (quality === ConnectionQuality.Good) {
-			return { icon: '🟡', color: 'text-yellow-400', title: 'Buena' };
+			return { colorClass: 'text-yellow-400', title: 'Buena' };
 		} else if (quality === ConnectionQuality.Poor) {
-			return { icon: '🟠', color: 'text-orange-400', title: 'Pobre' };
+			return { colorClass: 'text-orange-400', title: 'Pobre' };
 		}
-		return { icon: '🔴', color: 'text-red-500', title: 'Mala conexión' };
+		return { colorClass: 'text-red-400', title: 'Mala conexión' };
 	}
 
 	// Background filter functions
@@ -839,7 +865,7 @@
 			downloadNotification = false;
 		}, 5000);
 		
-		console.log('✅ Grabación descargada: audio WebM/Opus. Reproducir con VLC, Chrome, Firefox o Audacity');
+		console.log('[RolCall] Grabación descargada: audio WebM/Opus. Reproducir con VLC, Chrome, Firefox o Audacity');
 		
 		// Limpiar
 		setTimeout(() => {
@@ -856,19 +882,22 @@
 	<main class="flex min-h-screen flex-col items-center justify-center px-4">
 		<div class="w-full max-w-md text-center">
 			<div class="mb-8">
-				<span class="text-5xl">📹</span>
+				<div class="mb-3 flex justify-center">
+					<Video class="h-12 w-12 text-indigo-400" />
+				</div>
 				<h1 class="mt-2 text-3xl font-bold text-white">Unirse a la videollamada</h1>
 				<p class="mt-2 text-gray-400">Introduce tu nombre para entrar</p>
 			</div>
 			<div class="rounded-2xl border border-gray-800 bg-gray-900 p-8">
 				{#if error}
-					<div class="mb-4 rounded-lg border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-300">{error}</div>
+					<div class="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
 				{/if}
 				<form onsubmit={(e) => { e.preventDefault(); joinRoom(); }}>
-					<input type="text" bind:value={playerName} placeholder="Tu nombre" required maxlength={20}
-						class="mb-4 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-center text-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+				<input type="text" bind:value={playerName} placeholder="Tu nombre" required maxlength={20} aria-label="Nombre de participante"
+					class="mb-4 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-center text-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950" />
 					<button type="submit" disabled={connecting || !playerName.trim()}
-						class="w-full rounded-xl bg-indigo-600 px-6 py-3 text-lg font-semibold text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
+						aria-label={connecting ? 'Conectando…' : 'Unirse a la sala'}
+						class="w-full rounded-xl bg-indigo-600 px-6 py-3 text-lg font-semibold text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950">
 						{#if connecting}Conectando…{:else}Unirse{/if}
 					</button>
 				</form>
@@ -881,7 +910,7 @@
 
 		<!-- Recording notification -->
 		{#if recordingNotification}
-			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-red-600 bg-red-950 px-6 py-3 shadow-xl">
+			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-xl">
 				<div class="flex items-center gap-2">
 					<span class="h-3 w-3 animate-pulse rounded-full bg-red-500"></span>
 					<span class="font-semibold text-red-200">La sesión se está grabando</span>
@@ -893,7 +922,7 @@
 			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-green-600 bg-green-950 px-6 py-3 shadow-xl">
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center gap-2">
-						<span class="text-xl">💾</span>
+						<Download class="h-5 w-5 text-green-400" />
 						<span class="font-semibold text-green-200">Grabación descargada</span>
 					</div>
 					<span class="text-xs text-green-300">Archivo: audio WebM/Opus • Reproducir con VLC, Chrome o Audacity</span>
@@ -909,8 +938,18 @@
 			</div>
 			<div class="flex items-center gap-2">
 				{#if isMaster}
-					<button onclick={copyLink} class="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-300 transition hover:bg-gray-800">
-						{linkCopied ? '✅ Copiado!' : '🔗 Copiar enlace'}
+					<button
+						onclick={copyLink}
+						aria-label={linkCopied ? 'Enlace copiado' : 'Copiar enlace de la sala'}
+						class="flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-300 transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+					>
+						{#if linkCopied}
+							<Check class="h-4 w-4 text-emerald-400" />
+							Copiado!
+						{:else}
+							<Link2 class="h-4 w-4" />
+							Copiar enlace
+						{/if}
 					</button>
 				{/if}
 				<span class="text-sm text-gray-500">{participants.length}/6</span>
@@ -922,24 +961,32 @@
 				{#if screenShareTrack}
 					<div class="relative flex-1 bg-black">
 						<video bind:this={screenShareEl} autoplay playsinline class="h-full w-full object-contain"></video>
-						<div class="absolute left-3 top-3 rounded-lg bg-black/70 px-3 py-1 text-sm text-white">
-							🖥️ {screenShareParticipant} comparte pantalla
+						<div class="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg bg-black/70 px-3 py-1 text-sm text-white">
+							<Monitor class="h-4 w-4" />{screenShareParticipant} comparte pantalla
 						</div>
 						<div class="absolute right-3 top-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5">
 							<button
 								onclick={() => setScreenShareVolume(screenShareVolume === 0 ? 1.0 : 0)}
-								class="text-sm text-white transition hover:text-gray-300"
-								title="Silenciar audio de pantalla"
-							>{getVolumeIcon(screenShareVolume)}</button>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								value={screenShareVolume * 100}
-								oninput={(e) => setScreenShareVolume(e.currentTarget.valueAsNumber / 100)}
-								class="w-20 accent-indigo-500"
-								title="Volumen audio de pantalla compartida"
-							/>
+								aria-label={screenShareVolume === 0 ? 'Activar audio de pantalla' : 'Silenciar audio de pantalla'}
+								class="text-white transition hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900"
+							>
+								{#if getVolumeIconType(screenShareVolume) === 'muted'}
+									<VolumeX class="h-4 w-4" />
+								{:else if getVolumeIconType(screenShareVolume) === 'low'}
+									<Volume1 class="h-4 w-4" />
+								{:else}
+									<Volume2 class="h-4 w-4" />
+								{/if}
+							</button>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							value={screenShareVolume * 100}
+							oninput={(e) => setScreenShareVolume(e.currentTarget.valueAsNumber / 100)}
+							aria-label="Volumen de pantalla compartida"
+							class="w-20 accent-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+						/>
 						</div>
 					</div>
 				{/if}
@@ -955,41 +1002,52 @@
 							
 							<!-- Indicador de conexión en esquina superior derecha -->
 							<div class="absolute right-2 top-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 backdrop-blur-sm">
-								<span class="{quality.color} text-sm" title={quality.title}>{quality.icon}</span>
+								<Wifi class="h-3.5 w-3.5 {quality.colorClass}" title={quality.title} />
 							</div>
 							
 							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
 								<span class="flex items-center gap-1 text-sm font-medium text-white">
-									{#if p === room?.localParticipant && isMaster}<span class="text-amber-400">👑</span>{/if}
+									{#if p === room?.localParticipant && isMaster}<Crown class="h-4 w-4 text-amber-400" />{/if}
 									{p.name || p.identity}
 									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
 								</span>
 								<div class="flex items-center gap-1">
-									{#if isParticipantMuted(p)}<span class="text-red-400 text-xs">🔇</span>{/if}
+									{#if isParticipantMuted(p)}<MicOff class="h-4 w-4 text-red-400" />{/if}
 								</div>
 							</div>
 							{#if isRemote}
 								<button
 									onclick={() => toggleParticipantMute(p.identity)}
-									class="absolute bottom-9 left-2 rounded-full bg-black/70 px-1.5 py-0.5 text-sm text-white opacity-100 transition"
-									title="Silenciar / Restaurar volumen"
-								>{getVolumeIcon(currentVol)}</button>
+									aria-label={currentVol === 0 ? `Restaurar volumen de ${p.name || p.identity}` : `Silenciar a ${p.name || p.identity}`}
+									class="absolute bottom-9 left-2 rounded-full bg-black/70 p-1.5 text-white opacity-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900"
+								>
+									{#if getVolumeIconType(currentVol) === 'muted'}
+										<VolumeX class="h-4 w-4" />
+									{:else if getVolumeIconType(currentVol) === 'low'}
+										<Volume1 class="h-4 w-4" />
+									{:else}
+										<Volume2 class="h-4 w-4" />
+									{/if}
+								</button>
 								<div class="absolute bottom-9 left-9 right-2 flex items-center opacity-100 transition">
-									<input
-										type="range"
-										min="0"
-										max="100"
-										value={currentVol * 100}
-										oninput={(e) => setParticipantVolume(p.identity, e.currentTarget.valueAsNumber / 100)}
-										class="w-full accent-indigo-500"
-										title="Volumen de {p.name || p.identity}"
-									/>
+								<input
+									type="range"
+									min="0"
+									max="100"
+									value={currentVol * 100}
+									oninput={(e) => setParticipantVolume(p.identity, e.currentTarget.valueAsNumber / 100)}
+									aria-label="Volumen del participante"
+									class="w-full accent-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+								/>
 								</div>
 							{/if}
 							{#if isMaster && isRemote}
-								<button onclick={() => kickParticipant(p.identity)}
-									class="absolute right-2 top-8 rounded-full bg-red-600/80 p-1.5 text-xs text-white opacity-0 transition group-hover:opacity-100"
-									title="Expulsar">✕</button>
+								<button
+									onclick={() => kickParticipant(p.identity)}
+									aria-label="Expulsar a {p.name || p.identity}"
+									class="absolute right-2 top-8 rounded-full bg-red-600/80 p-1.5 text-white opacity-0 transition group-hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 focus-visible:opacity-100"
+									title="Expulsar"
+								><X class="h-3 w-3" /></button>
 							{/if}
 						</div>
 					{/each}
@@ -1000,25 +1058,36 @@
 			{#if chatOpen}
 				<div class="flex w-80 flex-col border-l border-gray-800 bg-gray-900">
 					<div class="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-						<span class="font-medium text-white">💬 Chat</span>
-						<button onclick={() => (chatOpen = false)} class="text-gray-400 hover:text-white">✕</button>
+						<span class="flex items-center gap-2 font-medium text-white">
+							<MessageSquare class="h-4 w-4" /> Chat
+						</span>
+						<button
+							onclick={() => (chatOpen = false)}
+							aria-label="Cerrar chat"
+							class="rounded p-1 text-gray-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+						><X class="h-4 w-4" /></button>
 					</div>
 					<div bind:this={chatContainer} class="flex-1 overflow-y-auto p-4 space-y-3">
 						{#each chatMessages as msg}
 							<div>
 								<div class="flex items-baseline gap-2">
 									<span class="text-sm font-semibold text-indigo-400">{msg.sender}</span>
-									<span class="text-xs text-gray-600">{msg.time}</span>
+									<span class="text-xs text-gray-400">{msg.time}</span>
 								</div>
 								<p class="text-sm text-gray-300">{msg.text}</p>
 							</div>
 						{/each}
-						{#if chatMessages.length === 0}<p class="text-center text-sm text-gray-600">Aún no hay mensajes</p>{/if}
+						{#if chatMessages.length === 0}<p class="text-center text-sm text-gray-400">Aún no hay mensajes</p>{/if}
 					</div>
 					<form onsubmit={(e) => { e.preventDefault(); sendChat(); }} class="flex border-t border-gray-800 p-3 gap-2">
-						<input type="text" bind:value={chatInput} placeholder="Escribe un mensaje…" maxlength={500}
-							class="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none" />
-						<button type="submit" disabled={!chatInput.trim()} class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500 disabled:opacity-50">↑</button>
+					<input type="text" bind:value={chatInput} placeholder="Escribe un mensaje…" maxlength={500} aria-label="Mensaje de chat"
+						class="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900" />
+						<button
+							type="submit"
+							disabled={!chatInput.trim()}
+							aria-label="Enviar mensaje"
+							class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+						><Send class="h-4 w-4" /></button>
 					</form>
 				</div>
 			{/if}
@@ -1026,57 +1095,92 @@
 
 		<div class="flex items-center justify-center gap-3 border-t border-gray-800 bg-gray-900 px-4 py-3">
 			<div class="relative">
-				<button onclick={toggleMic} class="rounded-full p-3 text-xl transition {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
-					title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
+				<button
+					onclick={toggleMic}
+					aria-label={micEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
+					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
+				>{#if micEnabled}<Mic class="h-5 w-5" />{:else}<MicOff class="h-5 w-5" />{/if}</button>
 				{#if vadEnabled}<span class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-gray-900 {vadSpeaking ? 'bg-green-400' : 'bg-gray-500'}"></span>{/if}
 			</div>
-			<button onclick={toggleNoiseSuppression} class="rounded-full p-3 text-xl transition {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
-				title={noiseSuppression ? (krispSupported ? 'Reducción de ruido profesional (activa)' : 'Reducción de ruido básica (navegador)') : 'Reducción de ruido desactivada'}>{noiseSuppression ? '✨' : '🔊'}</button>
-			<button onclick={toggleVAD} class="rounded-full p-3 text-xl transition {vadEnabled ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
-				title={vadEnabled ? 'Desactivar auto-silencio' : 'Activar auto-silencio'}>🎚️</button>
-			<button onclick={toggleCam} class="rounded-full p-3 text-xl transition {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
-				title={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}>{camEnabled ? '📹' : '📷'}</button>
+			<button
+				onclick={toggleNoiseSuppression}
+				aria-label={noiseSuppression ? 'Desactivar reducción de ruido' : 'Activar reducción de ruido'}
+				title={noiseSuppression ? (krispSupported ? 'Reducción de ruido profesional (activa)' : 'Reducción de ruido básica (navegador)') : 'Reducción de ruido desactivada'}
+				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+			>{#if noiseSuppression}<AudioWaveform class="h-5 w-5" />{:else}<Volume2 class="h-5 w-5" />{/if}</button>
+			<button
+				onclick={toggleVAD}
+				aria-label={vadEnabled ? 'Desactivar auto-silencio' : 'Activar auto-silencio'}
+				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {vadEnabled ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+			><Activity class="h-5 w-5" /></button>
+			<button
+				onclick={toggleCam}
+				aria-label={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}
+				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
+			>{#if camEnabled}<Video class="h-5 w-5" />{:else}<VideoOff class="h-5 w-5" />{/if}</button>
 			
 			<!-- Background filter button with dropdown -->
 			<div class="relative">
-				<button onclick={() => backgroundMenuOpen = !backgroundMenuOpen} 
-					class="rounded-full p-3 text-xl transition {backgroundMode !== 'none' ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
-					title="Fondo virtual">
-					🎨
-				</button>
+				<button
+					onclick={() => backgroundMenuOpen = !backgroundMenuOpen}
+					aria-label="Fondo virtual"
+					aria-expanded={backgroundMenuOpen}
+					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {backgroundMode !== 'none' ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				><Sparkles class="h-5 w-5" /></button>
 				
 				{#if backgroundMenuOpen}
 					<div class="absolute bottom-full mb-2 right-0 w-56 rounded-lg border border-gray-700 bg-gray-800 p-2 shadow-xl">
 						<div class="text-xs font-semibold text-gray-400 px-2 py-1">Fondo virtual</div>
-						<button onclick={setBackgroundNone} 
-							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'none' ? 'bg-gray-700' : ''}">
-							🚫 Sin filtro
-						</button>
-						<button onclick={setBackgroundBlur} 
-							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'blur' ? 'bg-gray-700' : ''}">
-							💨 Difuminar fondo
-						</button>
-						<button onclick={() => backgroundImageInput.click()} 
-							class="w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition {backgroundMode === 'image' ? 'bg-gray-700' : ''}">
-							🖼️ Imagen personalizada
-						</button>
+						<button
+							onclick={setBackgroundNone}
+							aria-label="Sin filtro de fondo"
+							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'none' ? 'bg-gray-700' : ''}"
+						><Ban class="h-4 w-4" /> Sin filtro</button>
+						<button
+							onclick={setBackgroundBlur}
+							aria-label="Difuminar fondo"
+							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'blur' ? 'bg-gray-700' : ''}"
+						><Blend class="h-4 w-4" /> Difuminar fondo</button>
+						<button
+							onclick={() => backgroundImageInput.click()}
+							aria-label="Imagen personalizada de fondo"
+							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'image' ? 'bg-gray-700' : ''}"
+						><ImageIcon class="h-4 w-4" /> Imagen personalizada</button>
 						<input bind:this={backgroundImageInput} type="file" accept="image/*" onchange={handleBackgroundImageUpload} class="hidden" />
 					</div>
 				{/if}
 			</div>
 
 			{#if isMaster}
-				<button onclick={toggleScreenShare} class="rounded-full p-3 text-xl transition {screenSharing ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
-					title={screenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}>🖥️</button>
-				<button onclick={toggleRecording} class="rounded-full p-3 text-xl transition {isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
-					title={isRecording ? 'Detener grabación' : 'Iniciar grabación'}>⏺️</button>
+				<button
+					onclick={toggleScreenShare}
+					aria-label={screenSharing ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
+					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {screenSharing ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
+				><Monitor class="h-5 w-5" /></button>
+				<button
+					onclick={toggleRecording}
+					aria-label={isRecording ? 'Detener grabación' : 'Iniciar grabación'}
+					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
+				><Circle class="h-5 w-5 {isRecording ? 'fill-current' : ''}" /></button>
 			{/if}
-			<button onclick={() => (chatOpen = !chatOpen)} class="rounded-full p-3 text-xl transition {chatOpen ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white" title="Chat">💬</button>
+			<button
+				onclick={() => (chatOpen = !chatOpen)}
+				aria-label={chatOpen ? 'Cerrar chat' : 'Abrir chat'}
+				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {chatOpen ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+			><MessageSquare class="h-5 w-5" /></button>
 			<div class="mx-2 h-8 w-px bg-gray-700"></div>
 			{#if isMaster}
-				<button onclick={closeRoom} class="rounded-full bg-red-700 p-3 text-xl text-white transition hover:bg-red-600" title="Cerrar sala">🚪</button>
+				<button
+					onclick={closeRoom}
+					aria-label="Cerrar sala"
+					class="rounded-full bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+				><LogOut class="h-5 w-5" /></button>
 			{:else}
-				<button onclick={leaveRoom} class="rounded-full bg-red-700 p-3 text-xl text-white transition hover:bg-red-600" title="Salir">📞</button>
+				<button
+					onclick={leaveRoom}
+					aria-label="Salir de la sala"
+					class="rounded-full bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+				><PhoneOff class="h-5 w-5" /></button>
 			{/if}
 		</div>
 	</div>
@@ -1084,11 +1188,17 @@
 {:else}
 	<main class="flex min-h-screen items-center justify-center">
 		<div class="text-center">
-			<div class="mb-4 text-4xl">🎲</div>
+			<div class="mb-4 flex justify-center">
+				<LoaderCircle class="h-10 w-10 text-indigo-400 animate-spin" />
+			</div>
 			<p class="text-lg text-gray-400">Conectando a la sala…</p>
 			{#if error}
-				<div class="mt-4 rounded-lg border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-300">{error}</div>
-				<a href="/" class="mt-4 inline-block text-indigo-400 hover:underline">Volver al inicio</a>
+				<div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+			<a
+				href="/"
+				aria-label="Volver al inicio"
+				class="mt-4 inline-block text-indigo-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
+			>Volver al inicio</a>
 			{/if}
 		</div>
 	</main>
