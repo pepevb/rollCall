@@ -46,6 +46,18 @@
 	let krispSupported = $state(false);
 	let krispProcessor: any = $state(null);
 
+	// VAD (Voice Activity Detection) state
+	let vadEnabled = $state(false);
+	let vadSpeaking = $state(false);
+	let autoMuted = $state(false);
+	let audioCtx: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+	let vadInterval: ReturnType<typeof setInterval> | null = null;
+	let silenceTimer = 0;
+	let vadDataArray: Uint8Array<ArrayBuffer> | null = null;
+	const VAD_THRESHOLD = 15;
+	const SILENCE_DURATION = 300;
+
 	let chatOpen = $state(false);
 	let chatMessages = $state<{ sender: string; text: string; time: string }[]>([]);
 	let chatInput = $state('');
@@ -91,6 +103,7 @@
 					backgroundMode = prefs.backgroundMode;
 				}
 				noiseSuppression = prefs.noiseSuppression ?? true;
+				vadEnabled = prefs.vadEnabled ?? false;
 			}
 		} catch (e) {
 			console.error('Error loading preferences:', e);
@@ -106,6 +119,7 @@
 				lastUsedName: playerName,
 				backgroundMode: backgroundMode,
 				noiseSuppression: noiseSuppression,
+				vadEnabled: vadEnabled,
 			}));
 		} catch (e) {
 			console.error('Error saving preferences:', e);
@@ -259,6 +273,8 @@
 
 	onDestroy(() => {
 		if (room) {
+			// Cleanup VAD
+			destroyVAD();
 			// Cleanup Krisp processor before disconnecting
 			if (krispProcessor) {
 				try {
@@ -352,6 +368,9 @@
 		} catch (e) {
 			console.warn('Krisp noise filter not available, using browser fallback:', e);
 		}
+
+		// Initialize VAD if preference is enabled
+		if (vadEnabled) initVAD();
 
 		refreshParticipants();
 		applyStoredVolumes();
@@ -448,6 +467,8 @@
 	}
 
 	function handleDisconnect(reason?: DisconnectReason) {
+		// Cleanup VAD on any disconnect
+		destroyVAD();
 		// Cleanup Krisp processor on any disconnect
 		if (krispProcessor && room) {
 			try {
@@ -479,7 +500,13 @@
 			noiseSuppression,
 			echoCancellation: true,
 			autoGainControl: true
-		}); 
+		});
+		// Pause/resume VAD on manual mic toggle
+		if (!micEnabled && vadInterval) {
+			destroyVAD();
+		} else if (micEnabled && vadEnabled && !vadInterval) {
+			initVAD();
+		}
 	}
 	
 	async function toggleNoiseSuppression() {
@@ -501,6 +528,90 @@
 		}
 		savePreferences();
 	}
+
+	// VAD Engine
+	function initVAD() {
+		if (!room || vadInterval) return;
+		const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+		if (!micPub?.track) return;
+
+		try {
+			audioCtx = new AudioContext();
+			const stream = new MediaStream([micPub.track.mediaStreamTrack]);
+			const source = audioCtx.createMediaStreamSource(stream);
+			analyser = audioCtx.createAnalyser();
+			analyser.fftSize = 2048;
+			analyser.smoothingTimeConstant = 0.3;
+			source.connect(analyser);
+			vadDataArray = new Uint8Array(analyser.frequencyBinCount);
+			silenceTimer = 0;
+			vadInterval = setInterval(checkVoiceActivity, 50);
+		} catch (e) {
+			console.warn('VAD initialization failed:', e);
+		}
+	}
+
+	function checkVoiceActivity() {
+		if (!vadEnabled || !micEnabled || !analyser || !vadDataArray || !room) return;
+
+		analyser.getByteFrequencyData(vadDataArray);
+		let sum = 0;
+		for (let i = 0; i < vadDataArray.length; i++) {
+			const v = vadDataArray[i];
+			sum += v * v;
+		}
+		const rms = Math.sqrt(sum / vadDataArray.length);
+
+		const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+		if (!micPub) return;
+
+		if (rms >= VAD_THRESHOLD) {
+			silenceTimer = 0;
+			vadSpeaking = true;
+			if (autoMuted) {
+				micPub.unmute();
+				autoMuted = false;
+			}
+		} else {
+			vadSpeaking = false;
+			silenceTimer += 50;
+			if (silenceTimer >= SILENCE_DURATION && !autoMuted) {
+				micPub.mute();
+				autoMuted = true;
+			}
+		}
+	}
+
+	function destroyVAD() {
+		if (vadInterval) {
+			clearInterval(vadInterval);
+			vadInterval = null;
+		}
+		if (audioCtx) {
+			audioCtx.close().catch(() => {});
+			audioCtx = null;
+		}
+		analyser = null;
+		vadDataArray = null;
+		silenceTimer = 0;
+		vadSpeaking = false;
+		if (autoMuted && room) {
+			const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+			if (micPub) micPub.unmute();
+			autoMuted = false;
+		}
+	}
+
+	async function toggleVAD() {
+		vadEnabled = !vadEnabled;
+		if (vadEnabled) {
+			initVAD();
+		} else {
+			destroyVAD();
+		}
+		savePreferences();
+	}
+
 	async function toggleCam() { if (!room) return; camEnabled = !camEnabled; await room.localParticipant.setCameraEnabled(camEnabled); refreshParticipants(); }
 	async function toggleScreenShare() { if (!room || !isMaster) return; screenSharing = !screenSharing; await room.localParticipant.setScreenShareEnabled(screenSharing, { audio: true }); }
 	async function leaveRoom() { if (room) room.disconnect(); joined = false; participants = []; window.location.href = '/'; }
@@ -914,10 +1025,15 @@
 		</div>
 
 		<div class="flex items-center justify-center gap-3 border-t border-gray-800 bg-gray-900 px-4 py-3">
-			<button onclick={toggleMic} class="rounded-full p-3 text-xl transition {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
-				title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
+			<div class="relative">
+				<button onclick={toggleMic} class="rounded-full p-3 text-xl transition {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
+					title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
+				{#if vadEnabled}<span class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-gray-900 {vadSpeaking ? 'bg-green-400' : 'bg-gray-500'}"></span>{/if}
+			</div>
 			<button onclick={toggleNoiseSuppression} class="rounded-full p-3 text-xl transition {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
 				title={noiseSuppression ? (krispSupported ? 'Reducción de ruido profesional (activa)' : 'Reducción de ruido básica (navegador)') : 'Reducción de ruido desactivada'}>{noiseSuppression ? '✨' : '🔊'}</button>
+			<button onclick={toggleVAD} class="rounded-full p-3 text-xl transition {vadEnabled ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				title={vadEnabled ? 'Desactivar auto-silencio' : 'Activar auto-silencio'}>🎚️</button>
 			<button onclick={toggleCam} class="rounded-full p-3 text-xl transition {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}>{camEnabled ? '📹' : '📷'}</button>
 			
