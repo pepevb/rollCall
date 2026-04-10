@@ -24,6 +24,7 @@
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"@livekit/krisp-noise-filter": "^0.4.1",
 		"@livekit/track-processors": "^0.7.2",
 		"livekit-client": "^2.18.1",
 		"livekit-server-sdk": "^2.15.1",
