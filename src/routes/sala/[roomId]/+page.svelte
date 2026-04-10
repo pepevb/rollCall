@@ -13,6 +13,7 @@
 		type RemoteTrackPublication,
 		type Participant,
 		type LocalVideoTrack,
+		type LocalAudioTrack,
 	} from 'livekit-client';
 	import { BackgroundBlur, VirtualBackground, type ProcessorWrapper } from '@livekit/track-processors';
 
@@ -41,7 +42,9 @@
 	let currentProcessor: ProcessorWrapper<any> | null = null;
 
 	// Noise suppression state
-	let noiseSuppression = $state(false);
+	let noiseSuppression = $state(true);
+	let krispSupported = $state(false);
+	let krispProcessor: any = $state(null);
 
 	let chatOpen = $state(false);
 	let chatMessages = $state<{ sender: string; text: string; time: string }[]>([]);
@@ -87,6 +90,7 @@
 				if (prefs.backgroundMode) {
 					backgroundMode = prefs.backgroundMode;
 				}
+				noiseSuppression = prefs.noiseSuppression ?? true;
 			}
 		} catch (e) {
 			console.error('Error loading preferences:', e);
@@ -101,6 +105,7 @@
 			localStorage.setItem('rolcall-preferences', JSON.stringify({
 				lastUsedName: playerName,
 				backgroundMode: backgroundMode,
+				noiseSuppression: noiseSuppression,
 			}));
 		} catch (e) {
 			console.error('Error saving preferences:', e);
@@ -253,7 +258,17 @@
 	});
 
 	onDestroy(() => {
-		if (room) room.disconnect();
+		if (room) {
+			// Cleanup Krisp processor before disconnecting
+			if (krispProcessor) {
+				try {
+					const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+					if (micPub?.track) (micPub.track as LocalAudioTrack).stopProcessor();
+				} catch (_) { /* ignore cleanup errors */ }
+				krispProcessor = null;
+			}
+			room.disconnect();
+		}
 		if (currentProcessor) currentProcessor.destroy();
 	});
 
@@ -320,6 +335,22 @@
 				error = 'No se pudo acceder a la cámara/micrófono. Verifica los permisos del navegador.';
 			}
 			// Continue without media — user is still connected
+		}
+
+		// Initialize Krisp noise filter
+		try {
+			const { isKrispNoiseFilterSupported, KrispNoiseFilter } = await import('@livekit/krisp-noise-filter');
+			if (isKrispNoiseFilterSupported()) {
+				krispProcessor = KrispNoiseFilter();
+				const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+				if (micPub?.track) {
+					await (micPub.track as LocalAudioTrack).setProcessor(krispProcessor);
+					await krispProcessor.setEnabled(noiseSuppression);
+				}
+				krispSupported = true;
+			}
+		} catch (e) {
+			console.warn('Krisp noise filter not available, using browser fallback:', e);
 		}
 
 		refreshParticipants();
@@ -417,6 +448,16 @@
 	}
 
 	function handleDisconnect(reason?: DisconnectReason) {
+		// Cleanup Krisp processor on any disconnect
+		if (krispProcessor && room) {
+			try {
+				const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+				if (micPub?.track) (micPub.track as LocalAudioTrack).stopProcessor();
+			} catch (_) { /* ignore cleanup errors */ }
+			krispProcessor = null;
+			krispSupported = false;
+		}
+
 		if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
 			error = 'Has sido expulsado de la sala.';
 		} else if (reason === DisconnectReason.CLIENT_INITIATED) {
@@ -444,16 +485,21 @@
 	async function toggleNoiseSuppression() {
 		if (!room) return;
 		noiseSuppression = !noiseSuppression;
-		// Disable and re-enable mic to apply new constraints
-		const wasEnabled = micEnabled;
-		if (wasEnabled) {
-			await room.localParticipant.setMicrophoneEnabled(false);
-			await room.localParticipant.setMicrophoneEnabled(true, {
-				noiseSuppression,
-				echoCancellation: true,
-				autoGainControl: true
-			});
+		if (krispSupported && krispProcessor) {
+			await krispProcessor.setEnabled(noiseSuppression);
+		} else {
+			// Fallback: disable/re-enable with constraints (brief audio drop)
+			const wasEnabled = micEnabled;
+			if (wasEnabled) {
+				await room.localParticipant.setMicrophoneEnabled(false);
+				await room.localParticipant.setMicrophoneEnabled(true, {
+					noiseSuppression,
+					echoCancellation: true,
+					autoGainControl: true
+				});
+			}
 		}
+		savePreferences();
 	}
 	async function toggleCam() { if (!room) return; camEnabled = !camEnabled; await room.localParticipant.setCameraEnabled(camEnabled); refreshParticipants(); }
 	async function toggleScreenShare() { if (!room || !isMaster) return; screenSharing = !screenSharing; await room.localParticipant.setScreenShareEnabled(screenSharing, { audio: true }); }
@@ -871,7 +917,7 @@
 			<button onclick={toggleMic} class="rounded-full p-3 text-xl transition {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={micEnabled ? 'Silenciar' : 'Activar micro'}>{micEnabled ? '🎙️' : '🔇'}</button>
 			<button onclick={toggleNoiseSuppression} class="rounded-full p-3 text-xl transition {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
-				title={noiseSuppression ? 'Reducción de ruido activa' : 'Activar reducción de ruido'}>{noiseSuppression ? '✨' : '🔊'}</button>
+				title={noiseSuppression ? (krispSupported ? 'Reducción de ruido profesional (activa)' : 'Reducción de ruido básica (navegador)') : 'Reducción de ruido desactivada'}>{noiseSuppression ? '✨' : '🔊'}</button>
 			<button onclick={toggleCam} class="rounded-full p-3 text-xl transition {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
 				title={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}>{camEnabled ? '📹' : '📷'}</button>
 			
