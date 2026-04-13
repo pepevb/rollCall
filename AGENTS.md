@@ -147,11 +147,11 @@ All three variables are **server-only** — imported via `$env/static/private`. 
 
 | Variable | Example | Description |
 |---|---|---|
-| `LIVEKIT_URL` | `wss://rolcall-mn08hx19.livekit.cloud` | WebSocket URL for LiveKit Cloud |
+| `LIVEKIT_URL` | `wss://your-project.livekit.cloud` | WebSocket URL for LiveKit Cloud |
 | `LIVEKIT_API_KEY` | `APIxxxxxxxx` | LiveKit project API key |
 | `LIVEKIT_API_SECRET` | `xxxxxxxxxxxxxxxx` | LiveKit project API secret |
 
-> **Note**: The `LIVEKIT_URL` is also hardcoded in `+page.svelte` for the client-side WebSocket connection (`room.connect('wss://rolcall-mn08hx19.livekit.cloud', token)`). If the project URL changes, update both `.env` and that hardcoded string.
+> **Note**: The `LIVEKIT_URL` is also hardcoded in `+page.svelte` for the client-side WebSocket connection (`room.connect('wss://your-project.livekit.cloud', token)`). If the project URL changes, update both `.env` and that hardcoded string.
 
 ---
 
@@ -179,7 +179,7 @@ This means all `.svelte` files must use the Svelte 5 runes API (`$state`, `$deri
 ### Hardcoded LiveKit URL
 `src/routes/sala/[roomId]/+page.svelte` line 96 hardcodes the WebSocket URL:
 ```ts
-await room.connect('wss://rolcall-mn08hx19.livekit.cloud', token);
+await room.connect('wss://your-project.livekit.cloud', token);
 ```
 This should ideally be driven by the `LIVEKIT_URL` env var exposed as a public env var (`$env/static/public`). Currently it's a known tech debt item.
 
