@@ -879,26 +879,40 @@
 </script>
 
 {#if !joined && !isMaster}
-	<main class="flex min-h-screen flex-col items-center justify-center px-4">
+	<main class="grain flex min-h-screen flex-col items-center justify-center px-4">
 		<div class="w-full max-w-md text-center">
-			<div class="mb-8">
-				<div class="mb-3 flex justify-center">
-					<Video class="h-12 w-12 text-indigo-400" />
+			<div class="mb-10">
+				<div class="mb-4 flex justify-center">
+					<Video class="h-16 w-16 text-purple-400 animate-pulse" />
 				</div>
-				<h1 class="mt-2 text-3xl font-bold text-white">Unirse a la videollamada</h1>
-				<p class="mt-2 text-gray-400">Introduce tu nombre para entrar</p>
+				<h1 class="text-5xl font-black text-display text-transparent bg-clip-text bg-gradient-to-br from-purple-300 via-pink-300 to-amber-300">
+					Unirse a la sala
+				</h1>
+				<p class="mt-3 text-lg text-gray-300">Introduce tu nombre para continuar</p>
 			</div>
-			<div class="rounded-2xl border border-gray-800 bg-gray-900 p-8">
+			<div class="brutal-border border-purple-400 text-purple-400 bg-gradient-to-br from-gray-900 to-gray-950 p-8">
 				{#if error}
-					<div class="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+					<div class="mb-5 brutal-border-sm border-red-400 text-red-400 bg-red-950/30 px-4 py-3 text-sm font-semibold">{error}</div>
 				{/if}
 				<form onsubmit={(e) => { e.preventDefault(); joinRoom(); }}>
 				<input type="text" bind:value={playerName} placeholder="Tu nombre" required maxlength={20} aria-label="Nombre de participante"
-					class="mb-4 w-full rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-center text-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950" />
+					class="mb-5 w-full brutal-border-sm border-purple-400/50 bg-gray-800 px-5 py-4 text-center text-xl font-bold text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none focus:ring-0 transition-all" />
 					<button type="submit" disabled={connecting || !playerName.trim()}
 						aria-label={connecting ? 'Conectando…' : 'Unirse a la sala'}
-						class="w-full rounded-xl bg-indigo-600 px-6 py-3 text-lg font-semibold text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950">
-						{#if connecting}Conectando…{:else}Unirse{/if}
+						class="w-full brutal-border border-purple-400 text-purple-400 bg-purple-600 px-6 py-4 text-xl font-black uppercase tracking-wide text-white dice-shadow transition-all hover:bg-purple-500 hover:translate-x-1.5 hover:translate-y-1.5 hover:shadow-none active:translate-x-2 active:translate-y-2 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500">
+						{#if connecting}
+							<span class="flex items-center justify-center gap-2">
+								<LoaderCircle class="h-6 w-6 animate-spin" />
+								Conectando...
+							</span>
+						{:else}
+							<span class="flex items-center justify-center gap-2">
+								<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								Unirse
+							</span>
+						{/if}
 					</button>
 				</form>
 			</div>
@@ -906,53 +920,59 @@
 	</main>
 
 {:else if joined}
-	<div class="flex h-screen flex-col bg-gray-950">
+	<div class="grain flex h-screen flex-col bg-gray-950">
 
-		<!-- Recording notification -->
+		<!-- Recording notification with brutal style -->
 		{#if recordingNotification}
-			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-xl">
-				<div class="flex items-center gap-2">
-					<span class="h-3 w-3 animate-pulse rounded-full bg-red-500"></span>
-					<span class="font-semibold text-red-200">La sesión se está grabando</span>
+			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform brutal-border-sm border-red-400 text-red-400 bg-red-950/90 backdrop-blur-sm px-6 py-4 shadow-2xl">
+				<div class="flex items-center gap-3">
+					<span class="h-4 w-4 animate-pulse rounded-full bg-red-400"></span>
+					<span class="font-black uppercase tracking-wider text-red-200">Grabando sesión</span>
 				</div>
 			</div>
 		{/if}
 
 		{#if downloadNotification}
-			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform rounded-lg border border-green-600 bg-green-950 px-6 py-3 shadow-xl">
-				<div class="flex flex-col gap-1">
-					<div class="flex items-center gap-2">
-						<Download class="h-5 w-5 text-green-400" />
-						<span class="font-semibold text-green-200">Grabación descargada</span>
+			<div class="fixed left-1/2 top-16 z-50 -translate-x-1/2 transform brutal-border-sm border-emerald-400 text-emerald-400 bg-emerald-950/90 backdrop-blur-sm px-6 py-4 shadow-2xl">
+				<div class="flex flex-col gap-2">
+					<div class="flex items-center gap-3">
+						<Download class="h-6 w-6 text-emerald-400" />
+						<span class="font-black uppercase tracking-wider text-emerald-200">Grabación lista</span>
 					</div>
-					<span class="text-xs text-green-300">Archivo: audio WebM/Opus • Reproducir con VLC, Chrome o Audacity</span>
+					<span class="text-xs font-bold uppercase text-emerald-300">Audio WebM • Reproducir con VLC o Audacity</span>
 				</div>
 			</div>
 		{/if}
 
-		<header class="flex items-center justify-between border-b border-gray-800 px-4 py-2">
-			<div class="flex items-center gap-2">
-				<svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-				<span class="text-sm font-medium text-gray-300">RolCall</span>
-				{#if isMaster}<span class="rounded bg-amber-600 px-2 py-0.5 text-xs font-bold text-white">ANFITRIÓN</span>{/if}
+		<header class="flex items-center justify-between border-b-2 border-gray-800 bg-gray-900/80 backdrop-blur-sm px-5 py-3">
+			<div class="flex items-center gap-3">
+				<svg class="h-6 w-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+				</svg>
+				<span class="text-lg font-black uppercase tracking-wider text-gray-100">RolCall</span>
+				{#if isMaster}
+					<span class="brutal-border-sm border-amber-400 text-amber-400 bg-amber-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Host</span>
+				{/if}
 			</div>
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-3">
 				{#if isMaster}
 					<button
 						onclick={copyLink}
 						aria-label={linkCopied ? 'Enlace copiado' : 'Copiar enlace de la sala'}
-						class="flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-300 transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+						class="brutal-border-sm flex items-center gap-2 border-gray-600 bg-gray-800 px-4 py-2 text-sm font-bold uppercase text-gray-300 transition hover:border-gray-400 hover:text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {linkCopied ? 'border-emerald-400 text-emerald-400' : 'text-gray-600'}"
 					>
 						{#if linkCopied}
-							<Check class="h-4 w-4 text-emerald-400" />
+							<Check class="h-5 w-5" />
 							Copiado!
 						{:else}
-							<Link2 class="h-4 w-4" />
-							Copiar enlace
+							<Link2 class="h-5 w-5" />
+							Enlace
 						{/if}
 					</button>
 				{/if}
-				<span class="text-sm text-gray-500">{participants.length}/6</span>
+				<span class="brutal-border-sm border-purple-500 bg-purple-600 px-3 py-1.5 text-sm font-black uppercase text-white text-purple-500">
+					{participants.length}/6
+				</span>
 			</div>
 		</header>
 
@@ -961,21 +981,24 @@
 				{#if screenShareTrack}
 					<div class="relative flex-1 bg-black">
 						<video bind:this={screenShareEl} autoplay playsinline class="h-full w-full object-contain"></video>
-						<div class="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg bg-black/70 px-3 py-1 text-sm text-white">
-							<Monitor class="h-4 w-4" />{screenShareParticipant} comparte pantalla
+						<div class="absolute left-4 top-4 brutal-border-sm border-emerald-400 bg-black/90 backdrop-blur-sm px-4 py-2 text-sm font-black uppercase tracking-wider text-white text-emerald-400">
+							<span class="flex items-center gap-2">
+								<Monitor class="h-5 w-5 text-emerald-400" />
+								{screenShareParticipant}
+							</span>
 						</div>
-						<div class="absolute right-3 top-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5">
+						<div class="absolute right-4 top-4 flex items-center gap-3 brutal-border-sm border-gray-700 bg-black/90 backdrop-blur-sm px-4 py-2 text-gray-700">
 							<button
 								onclick={() => setScreenShareVolume(screenShareVolume === 0 ? 1.0 : 0)}
 								aria-label={screenShareVolume === 0 ? 'Activar audio de pantalla' : 'Silenciar audio de pantalla'}
-								class="text-white transition hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900"
+								class="text-white transition hover:text-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
 							>
 								{#if getVolumeIconType(screenShareVolume) === 'muted'}
-									<VolumeX class="h-4 w-4" />
+									<VolumeX class="h-5 w-5" />
 								{:else if getVolumeIconType(screenShareVolume) === 'low'}
-									<Volume1 class="h-4 w-4" />
+									<Volume1 class="h-5 w-5" />
 								{:else}
-									<Volume2 class="h-4 w-4" />
+									<Volume2 class="h-5 w-5" />
 								{/if}
 							</button>
 						<input
@@ -985,31 +1008,35 @@
 							value={screenShareVolume * 100}
 							oninput={(e) => setScreenShareVolume(e.currentTarget.valueAsNumber / 100)}
 							aria-label="Volumen de pantalla compartida"
-							class="w-20 accent-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+							class="w-24 accent-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
 						/>
 						</div>
 					</div>
 				{/if}
 
 				<div bind:this={videoGrid}
-					class="grid flex-1 gap-2 p-2 {screenShareTrack ? 'max-h-40 grid-cols-6' : gridCols(participants.length)}">
+					class="grid flex-1 gap-3 p-3 {screenShareTrack ? 'max-h-40 grid-cols-6' : gridCols(participants.length)}">
 					{#each participants as p, i (p.identity)}
 						{@const quality = getConnectionQualityIcon(p)}
 						{@const isRemote = p !== room?.localParticipant}
 						{@const currentVol = participantVolumes.get(p.identity) ?? 1.0}
-						<div data-participant={i} class="group relative overflow-hidden rounded-xl bg-gray-900 {screenShareTrack ? '' : 'aspect-video'}">
+						<div data-participant={i} class="group relative overflow-hidden brutal-border-sm border-gray-700 bg-gray-900 text-gray-700 {screenShareTrack ? '' : 'aspect-video'} transition-all hover:border-purple-500">
 							<video autoplay playsinline muted={p === room?.localParticipant} class="h-full w-full object-cover"></video>
 							
-							<!-- Indicador de conexión en esquina superior derecha -->
-							<div class="absolute right-2 top-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 backdrop-blur-sm">
+							<!-- Indicador de conexión -->
+							<div class="absolute right-2 top-2 flex items-center gap-1 brutal-border-sm border-gray-800 bg-black/80 backdrop-blur-sm px-2 py-1 text-gray-800">
 								<Wifi class="h-3.5 w-3.5 {quality.colorClass}" title={quality.title} />
 							</div>
 							
-							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
-								<span class="flex items-center gap-1 text-sm font-medium text-white">
-									{#if p === room?.localParticipant && isMaster}<Crown class="h-4 w-4 text-amber-400" />{/if}
+							<div class="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black via-black/80 to-transparent px-3 py-3">
+								<span class="flex items-center gap-2 text-sm font-black uppercase text-white">
+									{#if p === room?.localParticipant && isMaster}
+										<Crown class="h-4 w-4 text-amber-400" />
+									{/if}
 									{p.name || p.identity}
-									{#if p === room?.localParticipant}<span class="text-gray-400">(tú)</span>{/if}
+									{#if p === room?.localParticipant}
+										<span class="text-xs text-gray-400 font-normal lowercase">(tú)</span>
+									{/if}
 								</span>
 								<div class="flex items-center gap-1">
 									{#if isParticipantMuted(p)}<MicOff class="h-4 w-4 text-red-400" />{/if}
@@ -1019,7 +1046,7 @@
 								<button
 									onclick={() => toggleParticipantMute(p.identity)}
 									aria-label={currentVol === 0 ? `Restaurar volumen de ${p.name || p.identity}` : `Silenciar a ${p.name || p.identity}`}
-									class="absolute bottom-9 left-2 rounded-full bg-black/70 p-1.5 text-white opacity-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900"
+									class="absolute bottom-11 left-2 brutal-border-sm border-gray-700 bg-black/80 backdrop-blur-sm p-1.5 text-white opacity-100 transition hover:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 text-gray-700"
 								>
 									{#if getVolumeIconType(currentVol) === 'muted'}
 										<VolumeX class="h-4 w-4" />
@@ -1029,7 +1056,7 @@
 										<Volume2 class="h-4 w-4" />
 									{/if}
 								</button>
-								<div class="absolute bottom-9 left-9 right-2 flex items-center opacity-100 transition">
+								<div class="absolute bottom-11 left-11 right-2 flex items-center opacity-100 transition">
 								<input
 									type="range"
 									min="0"
@@ -1037,7 +1064,7 @@
 									value={currentVol * 100}
 									oninput={(e) => setParticipantVolume(p.identity, e.currentTarget.valueAsNumber / 100)}
 									aria-label="Volumen del participante"
-									class="w-full accent-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+									class="w-full accent-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
 								/>
 								</div>
 							{/if}
@@ -1045,7 +1072,7 @@
 								<button
 									onclick={() => kickParticipant(p.identity)}
 									aria-label="Expulsar a {p.name || p.identity}"
-									class="absolute right-2 top-8 rounded-full bg-red-600/80 p-1.5 text-white opacity-0 transition group-hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 focus-visible:opacity-100"
+									class="absolute right-2 top-10 brutal-border-sm border-red-500 bg-red-600/90 backdrop-blur-sm p-1.5 text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:opacity-100 text-red-500"
 									title="Expulsar"
 								><X class="h-3 w-3" /></button>
 							{/if}
@@ -1056,67 +1083,71 @@
 			</div>
 
 			{#if chatOpen}
-				<div class="flex w-80 flex-col border-l border-gray-800 bg-gray-900">
-					<div class="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-						<span class="flex items-center gap-2 font-medium text-white">
-							<MessageSquare class="h-4 w-4" /> Chat
+				<div class="flex w-80 flex-col border-l-2 border-gray-800 bg-gray-900/90 backdrop-blur-sm">
+					<div class="flex items-center justify-between border-b-2 border-gray-800 bg-gray-900 px-5 py-4">
+						<span class="flex items-center gap-2 text-lg font-black uppercase tracking-wider text-white">
+							<MessageSquare class="h-5 w-5 text-purple-400" /> Chat
 						</span>
 						<button
 							onclick={() => (chatOpen = false)}
 							aria-label="Cerrar chat"
-							class="rounded p-1 text-gray-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+							class="brutal-border-sm border-gray-600 bg-gray-800 p-1.5 text-gray-400 hover:border-red-400 hover:text-red-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 text-gray-600"
 						><X class="h-4 w-4" /></button>
 					</div>
-					<div bind:this={chatContainer} class="flex-1 overflow-y-auto p-4 space-y-3">
+					<div bind:this={chatContainer} class="flex-1 overflow-y-auto p-4 space-y-4">
 						{#each chatMessages as msg}
-							<div>
-								<div class="flex items-baseline gap-2">
-									<span class="text-sm font-semibold text-indigo-400">{msg.sender}</span>
-									<span class="text-xs text-gray-400">{msg.time}</span>
+							<div class="brutal-border-sm border-purple-500/30 bg-gray-800/50 p-3 text-purple-500/30">
+								<div class="flex items-baseline gap-2 mb-1">
+									<span class="text-sm font-black uppercase text-purple-400">{msg.sender}</span>
+									<span class="text-xs font-mono text-gray-500">{msg.time}</span>
 								</div>
-								<p class="text-sm text-gray-300">{msg.text}</p>
+								<p class="text-sm text-gray-200 font-medium">{msg.text}</p>
 							</div>
 						{/each}
-						{#if chatMessages.length === 0}<p class="text-center text-sm text-gray-400">Aún no hay mensajes</p>{/if}
+						{#if chatMessages.length === 0}
+							<p class="text-center text-sm font-bold uppercase tracking-wider text-gray-500 mt-8">
+								Silencio absoluto...
+							</p>
+						{/if}
 					</div>
-					<form onsubmit={(e) => { e.preventDefault(); sendChat(); }} class="flex border-t border-gray-800 p-3 gap-2">
-					<input type="text" bind:value={chatInput} placeholder="Escribe un mensaje…" maxlength={500} aria-label="Mensaje de chat"
-						class="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900" />
+					<form onsubmit={(e) => { e.preventDefault(); sendChat(); }} class="flex border-t-2 border-gray-800 bg-gray-900 p-3 gap-2">
+					<input type="text" bind:value={chatInput} placeholder="Escribe un mensaje..." maxlength={500} aria-label="Mensaje de chat"
+						class="flex-1 brutal-border-sm border-gray-600 bg-gray-800 px-4 py-2.5 text-sm font-medium text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none text-gray-600" />
 						<button
 							type="submit"
 							disabled={!chatInput.trim()}
 							aria-label="Enviar mensaje"
-							class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+							class="brutal-border-sm border-purple-500 bg-purple-600 px-4 py-2.5 text-sm text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 text-purple-500 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition"
 						><Send class="h-4 w-4" /></button>
 					</form>
 				</div>
 			{/if}
 		</div>
 
-		<div class="flex items-center justify-center gap-3 border-t border-gray-800 bg-gray-900 px-4 py-3">
+		<div class="flex items-center justify-center gap-2 border-t-2 border-gray-800 bg-gray-900/90 backdrop-blur-sm px-4 py-4">
 			<div class="relative">
 				<button
 					onclick={toggleMic}
 					aria-label={micEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
-					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {micEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
+					class="brutal-border-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {micEnabled ? 'border-gray-600 bg-gray-700 hover:border-gray-500 hover:bg-gray-600 text-white text-gray-600' : 'border-red-500 bg-red-600 hover:bg-red-500 text-white text-red-500'} p-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				>{#if micEnabled}<Mic class="h-5 w-5" />{:else}<MicOff class="h-5 w-5" />{/if}</button>
-				{#if vadEnabled}<span class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-gray-900 {vadSpeaking ? 'bg-green-400' : 'bg-gray-500'}"></span>{/if}
+				{#if vadEnabled}<span class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-gray-900 {vadSpeaking ? 'bg-emerald-400' : 'bg-gray-600'}"></span>{/if}
 			</div>
 			<button
 				onclick={toggleNoiseSuppression}
 				aria-label={noiseSuppression ? 'Desactivar reducción de ruido' : 'Activar reducción de ruido'}
-				title={noiseSuppression ? (krispSupported ? 'Reducción de ruido profesional (activa)' : 'Reducción de ruido básica (navegador)') : 'Reducción de ruido desactivada'}
-				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {noiseSuppression ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				title={noiseSuppression ? (krispSupported ? 'Reducción profesional (activa)' : 'Reducción básica') : 'Sin reducción'}
+				class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {noiseSuppression ? 'border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-emerald-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-600'} text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 			>{#if noiseSuppression}<AudioWaveform class="h-5 w-5" />{:else}<Volume2 class="h-5 w-5" />{/if}</button>
 			<button
 				onclick={toggleVAD}
 				aria-label={vadEnabled ? 'Desactivar auto-silencio' : 'Activar auto-silencio'}
-				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {vadEnabled ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {vadEnabled ? 'border-purple-500 bg-purple-600 hover:bg-purple-500 text-purple-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-600'} text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 			><Activity class="h-5 w-5" /></button>
 			<button
 				onclick={toggleCam}
 				aria-label={camEnabled ? 'Desactivar cámara' : 'Activar cámara'}
-				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {camEnabled ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}"
+				class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {camEnabled ? 'border-gray-600 bg-gray-700 hover:border-gray-500 hover:bg-gray-600 text-white text-gray-600' : 'border-red-500 bg-red-600 hover:bg-red-500 text-white text-red-500'} hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 			>{#if camEnabled}<Video class="h-5 w-5" />{:else}<VideoOff class="h-5 w-5" />{/if}</button>
 			
 			<!-- Background filter button with dropdown -->
@@ -1125,27 +1156,27 @@
 					onclick={() => backgroundMenuOpen = !backgroundMenuOpen}
 					aria-label="Fondo virtual"
 					aria-expanded={backgroundMenuOpen}
-					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {backgroundMode !== 'none' ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+					class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {backgroundMode !== 'none' ? 'border-amber-500 bg-amber-600 hover:bg-amber-500 text-amber-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-600'} text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				><Sparkles class="h-5 w-5" /></button>
 				
 				{#if backgroundMenuOpen}
-					<div class="absolute bottom-full mb-2 right-0 w-56 rounded-lg border border-gray-700 bg-gray-800 p-2 shadow-xl">
-						<div class="text-xs font-semibold text-gray-400 px-2 py-1">Fondo virtual</div>
+					<div class="absolute bottom-full mb-2 right-0 w-64 brutal-border-sm border-gray-600 bg-gray-800 text-gray-600 p-3 shadow-2xl backdrop-blur-sm">
+						<div class="text-xs font-black uppercase tracking-wider text-gray-400 px-2 py-2">Filtros de fondo</div>
 						<button
 							onclick={setBackgroundNone}
 							aria-label="Sin filtro de fondo"
-							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'none' ? 'bg-gray-700' : ''}"
-						><Ban class="h-4 w-4" /> Sin filtro</button>
+							class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-bold text-white hover:bg-gray-700 transition {backgroundMode === 'none' ? 'bg-gray-700 text-purple-400' : ''}"
+						><Ban class="h-5 w-5" /> Sin filtro</button>
 						<button
 							onclick={setBackgroundBlur}
 							aria-label="Difuminar fondo"
-							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'blur' ? 'bg-gray-700' : ''}"
-						><Blend class="h-4 w-4" /> Difuminar fondo</button>
+							class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-bold text-white hover:bg-gray-700 transition {backgroundMode === 'blur' ? 'bg-gray-700 text-purple-400' : ''}"
+						><Blend class="h-5 w-5" /> Desenfocar</button>
 						<button
 							onclick={() => backgroundImageInput.click()}
 							aria-label="Imagen personalizada de fondo"
-							class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-800 {backgroundMode === 'image' ? 'bg-gray-700' : ''}"
-						><ImageIcon class="h-4 w-4" /> Imagen personalizada</button>
+							class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-bold text-white hover:bg-gray-700 transition {backgroundMode === 'image' ? 'bg-gray-700 text-purple-400' : ''}"
+						><ImageIcon class="h-5 w-5" /> Imagen personalizada</button>
 						<input bind:this={backgroundImageInput} type="file" accept="image/*" onchange={handleBackgroundImageUpload} class="hidden" />
 					</div>
 				{/if}
@@ -1155,49 +1186,49 @@
 				<button
 					onclick={toggleScreenShare}
 					aria-label={screenSharing ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
-					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {screenSharing ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
+					class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {screenSharing ? 'border-emerald-500 bg-emerald-600 hover:bg-emerald-500 text-white text-emerald-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-white text-gray-600'} hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				><Monitor class="h-5 w-5" /></button>
 				<button
 					onclick={toggleRecording}
 					aria-label={isRecording ? 'Detener grabación' : 'Iniciar grabación'}
-					class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {isRecording ? 'bg-red-600 hover:bg-red-500 animate-pulse text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}"
+					class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 {isRecording ? 'border-red-500 bg-red-600 hover:bg-red-500 animate-pulse text-white text-red-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-white text-gray-600'} hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				><Circle class="h-5 w-5 {isRecording ? 'fill-current' : ''}" /></button>
 			{/if}
 			<button
 				onclick={() => (chatOpen = !chatOpen)}
 				aria-label={chatOpen ? 'Cerrar chat' : 'Abrir chat'}
-				class="rounded-full p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 {chatOpen ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gray-700 hover:bg-gray-600'} text-white"
+				class="brutal-border-sm p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {chatOpen ? 'border-purple-500 bg-purple-600 hover:bg-purple-500 text-purple-500' : 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-600'} text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 			><MessageSquare class="h-5 w-5" /></button>
-			<div class="mx-2 h-8 w-px bg-gray-700"></div>
+			<div class="mx-2 h-10 w-0.5 bg-gray-700"></div>
 			{#if isMaster}
 				<button
 					onclick={closeRoom}
 					aria-label="Cerrar sala"
-					class="rounded-full bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+					class="brutal-border-sm border-red-500 bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 text-red-500 hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				><LogOut class="h-5 w-5" /></button>
 			{:else}
 				<button
 					onclick={leaveRoom}
 					aria-label="Salir de la sala"
-					class="rounded-full bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+					class="brutal-border-sm border-red-500 bg-red-700 p-3 text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 text-red-500 hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
 				><PhoneOff class="h-5 w-5" /></button>
 			{/if}
 		</div>
 	</div>
 
 {:else}
-	<main class="flex min-h-screen items-center justify-center">
+	<main class="grain flex min-h-screen items-center justify-center">
 		<div class="text-center">
-			<div class="mb-4 flex justify-center">
-				<LoaderCircle class="h-10 w-10 text-indigo-400 animate-spin" />
+			<div class="mb-6 flex justify-center">
+				<LoaderCircle class="h-16 w-16 text-purple-400 animate-spin" />
 			</div>
-			<p class="text-lg text-gray-400">Conectando a la sala…</p>
+			<p class="text-2xl font-black uppercase tracking-wider text-gray-300">Conectando...</p>
 			{#if error}
-				<div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+				<div class="mt-6 brutal-border-sm border-red-400 text-red-400 bg-red-950/30 px-6 py-4 text-sm font-semibold max-w-md mx-auto">{error}</div>
 			<a
 				href="/"
 				aria-label="Volver al inicio"
-				class="mt-4 inline-block text-indigo-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
+				class="mt-6 inline-block brutal-border-sm border-purple-400 text-purple-400 bg-purple-600 px-6 py-3 text-sm font-bold uppercase text-white hover:bg-purple-500 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
 			>Volver al inicio</a>
 			{/if}
 		</div>
